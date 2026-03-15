@@ -1,4 +1,5 @@
 import { RegisterForm } from "@/components/auth/RegisterForm";
+import { Suspense } from "react";
 
 export default function RegisterPage() {
   return (
@@ -9,7 +10,9 @@ export default function RegisterPage() {
             Returnia
           </h1>
         </div>
-        <RegisterForm />
+        <Suspense fallback={<div>Cargando...</div>}>
+          <RegisterForm />
+        </Suspense>
       </div>
     </div>
   );
