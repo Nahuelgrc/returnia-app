@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("CONNECTION_STRING")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  username      String?   @unique
+  name          String?
+  passwordHash  String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  transactions  Transaction[]
+  snapshots     PortfolioSnapshot[]
+}
+
+model Transaction {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  assetType       String
+  tickerName      String
+  tickerProvider  String
+  side            String
+  quantity        Decimal
+  price           Decimal
+  comments        String?
+  executedAt      DateTime
+}
+
+model PortfolioSnapshot {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  capturedAt        DateTime @default(now())
+  portfolioValueUsd Decimal
+  pnlUsd            Decimal
+}

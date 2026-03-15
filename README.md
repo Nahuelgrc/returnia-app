@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Returnia
 
-## Getting Started
+**Returnia** is a full-stack portfolio tracker for **Crypto** and **Stocks**, designed to help investors monitor their performance, track P&L (Profit & Loss), and visualize asset distribution in real time.
 
-First, run the development server:
+![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38bdf8?logo=tailwindcss)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169e1?logo=postgresql)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Features
+
+### 📊 Dashboard
+- **Balance Total** — Real-time portfolio valuation in USD
+- **Ganancia/Pérdida Histórica** — Interactive area chart showing cumulative invested value over time, with filterable time periods (1D, 1S, 1M, 1A, TODO)
+- **Distribución de Activos** — Donut chart visualizing portfolio allocation percentages across all holdings
+
+### 💼 Asset Management
+- **Asset Table** — View all holdings with columns: Activo, Precio, Cantidad, Valor, Retorno (%), and Acciones
+- **Live Prices** — Prices automatically refresh every 20 seconds via Finnhub (stocks) and Binance (crypto) APIs
+- **Retorno (%)** — Real profit/loss percentage calculated against your average purchase price (cost basis), not just 24h market change
+- **Quick Actions** — Edit (✏️) and Delete (🗑️) buttons on each asset row
+
+### 📝 Transactions
+- **Add Transaction Modal** — Buy or sell with autocomplete asset search powered by Finnhub and Binance
+- **Auto Price Fetch** — Unit price is automatically fetched when selecting an asset
+- **Sell Validation** — Backend prevents selling more than your current balance, with a styled error banner in the form
+- **Quantity Precision** — Supports up to 8 decimal places for crypto assets
+
+### 🔐 Authentication
+- **Google OAuth** — Sign in with your Google account
+- **Email/Password** — Traditional email and password login
+- Powered by NextAuth.js v5
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Framework** | Next.js 15+ (App Router) |
+| **Language** | TypeScript |
+| **Styling** | Tailwind CSS |
+| **Auth** | NextAuth.js v5 (Google + Credentials) |
+| **Database** | PostgreSQL (Neon) via Prisma ORM |
+| **Charts** | Recharts |
+| **Market Data** | Finnhub API (Stocks) + Binance API (Crypto) |
+| **Deployment** | Vercel (Frontend/API) + Neon (Database) |
+
+## Architecture
+
+```
+app/
+├── actions/          # Server Actions (transaction, portfolio)
+├── api/              # API Routes (prices, search)
+├── dashboard/        # Dashboard page (SSR)
+├── login/            # Login page
+components/
+├── dashboard/        # DashboardView, Header, Charts, Modals
+├── ui/               # Reusable UI (Modal, ConfirmDialog, GlassCard)
+hooks/                # Custom hooks (useAssetSearch, useAssetPrice)
+lib/                  # Utilities (db, binance, finnhub)
+prisma/               # Database schema
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Design
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Dark Mode Only** — Modern, minimalist interface with neon accents
+- **Glassmorphism** — Frosted glass effects on cards and modals
+- **Material Symbols** — Google Material icon set for consistent iconography
+- **Responsive** — Fully responsive layout from mobile to desktop
