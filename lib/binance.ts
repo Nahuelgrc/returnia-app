@@ -1,4 +1,4 @@
-const BINANCE_API_URL = "https://api.binance.com/api/v3";
+const BINANCE_API_URL = "https://data-api.binance.vision/api/v3";
 
 export async function getCryptoPrice(symbol: string) {
   // Binance symbols usually look like BTCUSDT
@@ -46,7 +46,7 @@ export async function searchBinanceSymbols(query: string) {
   ) {
     try {
       const response = await fetch(
-        "https://api.binance.com/api/v3/exchangeInfo",
+        "https://data-api.binance.vision/api/v3/exchangeInfo",
       );
       if (response.ok) {
         const data = await response.json();
