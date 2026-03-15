@@ -20,7 +20,7 @@ export async function registerAction(formData: FormData) {
   const validation = registerSchema.safeParse({ name, lastname, email, password });
 
   if (!validation.success) {
-    return { error: validation.error.errors[0].message };
+    return { error: validation.error.issues[0].message };
   }
 
   const { name: validName, lastname: validLastname, email: validEmail, password: validPassword } = validation.data;
