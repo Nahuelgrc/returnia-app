@@ -16,7 +16,6 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
   transactions  Transaction[]
-  snapshots     PortfolioSnapshot[]
 }
 
 model Transaction {
@@ -31,13 +30,4 @@ model Transaction {
   price           Decimal
   comments        String?
   executedAt      DateTime
-}
-
-model PortfolioSnapshot {
-  id                String   @id @default(uuid())
-  userId            String
-  user              User     @relation(fields: [userId], references: [id])
-  capturedAt        DateTime @default(now())
-  portfolioValueUsd Decimal
-  pnlUsd            Decimal
 }
