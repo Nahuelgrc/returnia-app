@@ -1,12 +1,10 @@
 "use client";
 import React from "react";
 
-import { GlassCard } from "@/components/ui/GlassCard";
 import {
   AreaChart,
   Area,
   XAxis,
-  YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,

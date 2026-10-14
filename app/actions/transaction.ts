@@ -3,80 +3,113 @@
 import { auth } from "@/auth";
 import { prisma as db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
+import {
+  tickerSchema,
+  transactionSchema,
+  type TransactionPayload,
+} from "@/lib/schemas/transaction";
 
-export const addTransaction = async (data: {
-  type: "buy" | "sell";
-  assetType: "crypto" | "stock";
-  ticker: string;
-  quantity: number;
-  price: number;
-  date: string;
-  comments?: string;
-}) => {
+export const addTransaction = async (input: TransactionPayload) => {
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
+  const userId = session.user.id;
+
+  const parsed = transactionSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid data" };
+  }
+  const data = parsed.data;
 
   try {
-    // Validate sell quantity against current holdings
-    if (data.type === "sell") {
-      const existingTransactions = await db.transaction.findMany({
-        where: {
-          userId: session.user.id,
-          tickerName: data.ticker,
-        },
-        select: { side: true, quantity: true },
-      });
+    const run = () =>
+      db.$transaction(
+      async (tx) => {
+        if (data.type === "sell") {
+          const existing = await tx.transaction.findMany({
+            where: { userId, tickerName: data.ticker },
+            select: { side: true, quantity: true, executedAt: true },
+          });
 
-      const currentBalance = existingTransactions.reduce((balance, tx) => {
-        const qty = Number(tx.quantity);
-        return tx.side === "buy" ? balance + qty : balance - qty;
-      }, 0);
+          const timeline = [
+            ...existing.map((t) => ({
+              side: t.side,
+              qty: t.quantity,
+              at: t.executedAt.getTime(),
+            })),
+            {
+              side: "sell" as const,
+              qty: new Prisma.Decimal(data.quantity),
+              at: data.date.getTime(),
+            },
+          ].sort((a, b) =>
+            a.at !== b.at ? a.at - b.at : a.side === "buy" ? -1 : 1,
+          );
 
-      if (data.quantity > currentBalance) {
-        return {
-          error: `No podés vender ${data.quantity} ${data.ticker}. Tu balance actual es ${currentBalance.toLocaleString(undefined, { maximumFractionDigits: 8 })} ${data.ticker}.`,
-        };
+          let balance = new Prisma.Decimal(0);
+          for (const t of timeline) {
+            balance = t.side === "buy" ? balance.plus(t.qty) : balance.minus(t.qty);
+            if (balance.isNegative()) {
+              return {
+                error: `You cannot sell ${data.quantity} ${data.ticker} on that date: the balance would be negative (${balance.toNumber().toLocaleString("en-US", { maximumFractionDigits: 8 })}).`,
+              };
+            }
+          }
+        }
+
+        const created = await tx.transaction.create({
+          data: {
+            userId,
+            assetType: data.assetType,
+            tickerName: data.ticker,
+            side: data.type,
+            quantity: data.quantity,
+            price: data.price,
+            executedAt: data.date,
+            comments: data.comments || null,
+          },
+        });
+        return { transaction: created };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+
+    let result: Awaited<ReturnType<typeof run>>;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        result = await run();
+        break;
+      } catch (e) {
+        const conflict =
+          e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2034";
+        if (!conflict || attempt >= 2) throw e;
       }
     }
 
-    const transaction = await db.transaction.create({
-      data: {
-        userId: session.user.id,
-        assetType: data.assetType,
-        tickerName: data.ticker,
-        tickerProvider:
-          data.assetType === "crypto"
-            ? `BINANCE:${data.ticker}USDT`
-            : data.ticker,
-        side: data.type,
-        quantity: data.quantity,
-        price: data.price,
-        executedAt: new Date(data.date),
-        comments: data?.comments || "",
-      },
-    });
+    if ("error" in result) return { error: result.error };
 
     revalidatePath("/dashboard");
-    
-    // Convert Prisma Decimal objects to standard JS numbers for Client Components
+
     const serializedTransaction = {
-      ...transaction,
-      quantity: Number(transaction.quantity),
-      price: Number(transaction.price),
+      ...result.transaction,
+      quantity: Number(result.transaction.quantity),
+      price: Number(result.transaction.price),
     };
 
     return { success: true, transaction: serializedTransaction };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Failed to add transaction:", error);
-    return {
-      error: `Error al guardar la transacción: ${error?.message || error}`,
-    };
+    return { error: "Error saving the transaction" };
   }
 };
 
-export const deleteAssetTransactions = async (tickerName: string) => {
+export const deleteAssetTransactions = async (input: string) => {
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
+
+  const parsedTicker = tickerSchema.safeParse(input);
+  if (!parsedTicker.success) return { error: "Invalid ticker" };
+  const tickerName = parsedTicker.data;
 
   try {
     await db.transaction.deleteMany({
@@ -88,10 +121,8 @@ export const deleteAssetTransactions = async (tickerName: string) => {
 
     revalidatePath("/dashboard");
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Failed to delete transactions:", error);
-    return {
-      error: `Error al eliminar las transacciones: ${error?.message || error}`,
-    };
+    return { error: "Error deleting the transactions" };
   }
 };

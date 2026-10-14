@@ -7,14 +7,14 @@ Returnia is a full-stack portfolio tracker for Crypto and Stocks.
 - **Theme:** Dark Mode ONLY. Modern, minimalist, neon accents.
 - **Core Goal:** Track investment performance (P&L), history, and distribution.
 - **Deployment:** Vercel (Frontend/API) + Neon Postgres (Database).
-- **Language:** Spanish (UI labels, form messages, and error messages are in Spanish).
+- **Language:** English (UI labels, form messages, and error messages are in English).
 
 ## 2. Tech Stack
 
 - **Framework:** Next.js 15+ (App Router).
 - **Language:** TypeScript.
 - **Styling:** Tailwind CSS.
-- **Auth:** NextAuth.js (v5/beta). Providers: Credentials (Email/Pass) + Google.
+- **Auth:** NextAuth.js (v5/beta). Provider: Credentials (Email/Pass) only.
 - **Database:** PostgreSQL (Neon) via Prisma ORM.
 - **Charts:** Recharts.
 - **Validation:** Zod.
@@ -57,7 +57,7 @@ model Transaction {
 
 - **Server Actions** are used for all backend operations (`app/actions/`).
 - **Prisma Decimal** types must be converted to `Number()` before returning to Client Components.
-- **Session user ID** is the Postgres UUID (overridden in JWT callback from Google ID).
+- **Session user ID** is the Postgres UUID (set in JWT callback from authorize).
 - **Price polling** runs every 20 seconds via `useRef` + `setInterval` to avoid stale closures.
 - **Sell validation** checks current balance server-side before allowing a sell transaction.
 - **Portfolio chart** shows cumulative invested value (cost basis) over time, computed from transactions.
@@ -69,7 +69,5 @@ All sensitive values must be in `.env` (gitignored):
 ```
 CONNECTION_STRING=       # Neon PostgreSQL connection string
 AUTH_SECRET=             # NextAuth.js secret
-GOOGLE_CLIENT_ID=        # Google OAuth client ID
-GOOGLE_CLIENT_SECRET=    # Google OAuth client secret
 FINNHUB_API_KEY=         # Finnhub API key for stock data
 ```

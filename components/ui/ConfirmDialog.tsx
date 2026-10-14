@@ -18,10 +18,10 @@ export const ConfirmDialog = ({
   isOpen,
   onClose,
   onConfirm,
-  title = "Confirmar",
+  title = "Confirm",
   message,
-  confirmLabel = "Eliminar",
-  cancelLabel = "Cancelar",
+  confirmLabel = "Delete",
+  cancelLabel = "Cancel",
   variant = "danger",
   isLoading = false,
 }: ConfirmDialogProps) => {

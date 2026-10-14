@@ -10,24 +10,34 @@ datasource db {
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
-  username      String?   @unique
   name          String?
-  passwordHash  String?
-  image         String?
+  passwordHash  String
   createdAt     DateTime  @default(now())
   transactions  Transaction[]
 }
 
+enum AssetType {
+  crypto
+  stock
+}
+
+enum Side {
+  buy
+  sell
+}
+
 model Transaction {
-  id              String   @id @default(uuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id])
-  assetType       String
-  tickerName      String
-  tickerProvider  String
-  side            String
-  quantity        Decimal
-  price           Decimal
-  comments        String?
-  executedAt      DateTime
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assetType  AssetType
+  tickerName String
+  side       Side
+  quantity   Decimal   @db.Decimal(28, 10)
+  price      Decimal   @db.Decimal(28, 10)
+  comments   String?
+  executedAt DateTime
+
+  @@index([userId, tickerName])
+  @@index([userId, executedAt])
 }

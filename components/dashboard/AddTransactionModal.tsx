@@ -3,27 +3,36 @@ import React, { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { useAssetSearch } from "@/hooks/useAssetSearch";
 import { useAssetPrice } from "@/hooks/useAssetPrice";
+import type {
+  AssetType,
+  Side,
+  TransactionPayload,
+} from "@/lib/schemas/transaction";
 
 interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (transaction: {
-    type: "buy" | "sell";
-    assetType: "crypto" | "stock";
-    ticker: string;
-    quantity: number;
-    price: number;
-    date: string;
-    comments?: string;
-  }) => void;
+  onSubmit: (transaction: TransactionPayload) => void;
   initialTicker?: string;
   initialQuantity?: string;
-  initialAssetType?: "crypto" | "stock";
+  initialAssetType?: AssetType;
   error?: string | null;
 }
 
-export const AddTransactionModal = ({
-  isOpen,
+const currentLocalDateTime = () => {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
+};
+
+export const AddTransactionModal = (props: AddTransactionModalProps) => (
+  <Modal isOpen={props.isOpen} onClose={props.onClose} title="Add Transaction">
+    <TransactionForm {...props} />
+  </Modal>
+);
+
+const TransactionForm = ({
   onClose,
   onSubmit,
   initialTicker,
@@ -31,40 +40,18 @@ export const AddTransactionModal = ({
   initialAssetType,
   error,
 }: AddTransactionModalProps) => {
-  const [transactionType, setTransactionType] = useState<"buy" | "sell">("buy");
-  const [assetType, setAssetType] = useState<"crypto" | "stock">("crypto");
-  const [ticker, setTicker] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [date, setDate] = useState("");
+  const [transactionType, setTransactionType] = useState<Side>("buy");
+  const [assetType, setAssetType] = useState<AssetType>(initialAssetType || "crypto");
+  const [ticker, setTicker] = useState(initialTicker || "");
+  const [quantity, setQuantity] = useState(initialQuantity || "");
+  const [date, setDate] = useState(currentLocalDateTime);
   const [comments, setComments] = useState("");
   
   const [showDropdown, setShowDropdown] = useState(false);
 
   // Use custom hooks for decoupled logic
   const { searchResults, isSearching } = useAssetSearch(ticker, assetType, showDropdown);
-  const { price, setPrice, isFetchingPrice } = useAssetPrice(ticker, assetType, !showDropdown);
-
-  // Initialize form when modal opens (including pre-fill values)
-  React.useEffect(() => {
-    if (isOpen) {
-      // Always reset to pristine state first
-      setTransactionType("buy");
-      setAssetType(initialAssetType || "crypto");
-      setTicker(initialTicker || "");
-      setQuantity(initialQuantity || "");
-      setPrice("");
-      setComments("");
-      setShowDropdown(false);
-
-      const now = new Date();
-      const localIsoString = new Date(
-        now.getTime() - now.getTimezoneOffset() * 60000,
-      )
-        .toISOString()
-        .slice(0, 16);
-      setDate(localIsoString);
-    }
-  }, [isOpen, initialTicker, initialQuantity, initialAssetType]);
+  const { price, setPrice, isFetchingPrice } = useAssetPrice(ticker, assetType);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,13 +61,15 @@ export const AddTransactionModal = ({
       ticker,
       quantity: Number(quantity),
       price: Number(price),
-      date,
+      date: Number.isNaN(new Date(date).getTime())
+        ? date
+        : new Date(date).toISOString(),
       comments: comments.trim() ? comments : undefined,
     });
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Agregar Transacción">
+    <>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {/* Error Banner */}
         {error && (
@@ -100,7 +89,7 @@ export const AddTransactionModal = ({
                 : "text-slate-500 hover:text-foreground"
             }`}
           >
-            Comprar
+            Buy
           </button>
           <button
             type="button"
@@ -111,7 +100,7 @@ export const AddTransactionModal = ({
                 : "text-slate-500 hover:text-foreground"
             }`}
           >
-            Vender
+            Sell
           </button>
         </div>
 
@@ -137,13 +126,13 @@ export const AddTransactionModal = ({
                 : "text-slate-500 hover:text-foreground"
             }`}
           >
-            Acciones
+            Stocks
           </button>
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-bold text-slate-500 uppercase">
-            Fecha y Hora
+            Date and Time
           </label>
           <input
             type="datetime-local"
@@ -196,7 +185,7 @@ export const AddTransactionModal = ({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Buscando...
+                  Searching...
                 </div>
               ) : searchResults.length > 0 ? (
                 <ul className="flex flex-col p-1">
@@ -220,7 +209,7 @@ export const AddTransactionModal = ({
                 </ul>
               ) : (
                 <div className="p-4 text-center text-sm font-bold text-slate-400">
-                  Sin resultados
+                  No results
                 </div>
               )}
             </div>
@@ -230,7 +219,7 @@ export const AddTransactionModal = ({
         <div className="flex gap-4">
           <div className="flex-1 flex flex-col gap-1.5">
             <label className="text-xs font-bold text-slate-500 uppercase">
-              Cantidad
+              Quantity
             </label>
             <input
               type="number"
@@ -251,7 +240,7 @@ export const AddTransactionModal = ({
           <div className="flex-1 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-500 uppercase">
-                Precio Unitario
+                Unit Price
               </label>
               {isFetchingPrice && (
                 <span className="text-[10px] text-primary flex items-center gap-1 font-bold animate-pulse">
@@ -275,7 +264,7 @@ export const AddTransactionModal = ({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Buscando...
+                  Searching...
                 </span>
               )}
             </div>
@@ -293,10 +282,10 @@ export const AddTransactionModal = ({
 
         <div className="flex flex-col gap-1.5 mt-2">
           <label className="text-xs font-bold text-slate-500 uppercase">
-            Comentarios (Opcional)
+            Comments (Optional)
           </label>
           <textarea
-            placeholder="¿Por qué o cómo hiciste este movimiento?"
+            placeholder="Why or how did you make this move?"
             value={comments}
             onChange={(e) => setComments(e.target.value)}
             className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary outline-none transition-all min-h-[80px] resize-y"
@@ -309,16 +298,16 @@ export const AddTransactionModal = ({
             onClick={onClose}
             className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-foreground transition-colors"
           >
-            Cancelar
+            Cancel
           </button>
           <button
             type="submit"
             className="px-6 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-xl shadow-lg shadow-primary/20 transition-all"
           >
-            Agregar
+            Add
           </button>
         </div>
       </form>
-    </Modal>
+    </>
   );
 };

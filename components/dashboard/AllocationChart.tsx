@@ -1,6 +1,6 @@
 "use client";
 import React, { useMemo } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Sector } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 const COLORS = [
   "#135bec", // Primary
@@ -13,7 +13,11 @@ const COLORS = [
   "#404040", // Others
 ];
 
-export const AllocationChart = ({ data = [] }: { data?: any[] }) => {
+export const AllocationChart = ({
+  data = [],
+}: {
+  data?: { name: string; value: number }[];
+}) => {
   const processedData = useMemo(() => {
     // 1. Sort by value descending
     const sorted = [...data].sort((a, b) => b.value - a.value);
@@ -73,7 +77,7 @@ export const AllocationChart = ({ data = [] }: { data?: any[] }) => {
               itemStyle={{ color: "#fff" }}
               formatter={(value: number | undefined) =>
                 value != null
-                  ? `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  ? `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                   : "$0.00"
               }
             />

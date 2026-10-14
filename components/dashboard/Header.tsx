@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { signOut } from "next-auth/react";
 import { User } from "next-auth";
 
@@ -10,6 +12,8 @@ interface HeaderProps {
 }
 
 export const Header = ({ title = "Dashboard", user }: HeaderProps) => {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -31,7 +35,9 @@ export const Header = ({ title = "Dashboard", user }: HeaderProps) => {
 
   const handleLogout = async () => {
     await signOut({ redirect: false });
-    window.location.href = "/login";
+    queryClient.clear();
+    router.replace("/login");
+    router.refresh();
   };
 
   // Get initials from name or email
@@ -69,15 +75,7 @@ export const Header = ({ title = "Dashboard", user }: HeaderProps) => {
               </p>
             </div>
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden">
-              {user?.image ? (
-                <img
-                  src={user.image}
-                  alt="User"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                getInitials()
-              )}
+              {getInitials()}
             </div>
           </button>
 
@@ -96,7 +94,7 @@ export const Header = ({ title = "Dashboard", user }: HeaderProps) => {
                 <span className="material-symbols-outlined text-[18px]">
                   logout
                 </span>
-                Cerrar Sesión
+                Log Out
               </button>
             </div>
           )}

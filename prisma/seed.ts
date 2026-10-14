@@ -1,15 +1,19 @@
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
 async function main() {
+  const seedPassword = process.env.SEED_PASSWORD
+  if (!seedPassword || seedPassword.length < 10) {
+    throw new Error('Set SEED_PASSWORD (minimum 10 characters) to run the seed')
+  }
   const user = await prisma.user.upsert({
     where: { email: 'test@returnia.com' },
     update: {},
     create: {
       email: 'test@returnia.com',
-      image: 'https://github.com/shadcn.png',
-      // passwordHash: ... (if using credentials, we need a hash here. For now leaving null as if OAuth or incomplete profile)
+      passwordHash: await bcrypt.hash(seedPassword, 12),
     },
   })
   

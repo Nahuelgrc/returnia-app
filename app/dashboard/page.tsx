@@ -1,12 +1,15 @@
-import React from "react";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { DashboardView } from "@/components/dashboard/DashboardView";
-import { getUserPortfolio } from "@/app/actions/portfolio";
+import { getPortfolioData } from "@/lib/portfolio-data";
 
 export default async function DashboardPage() {
   const session = await auth();
-  const portfolioResult = await getUserPortfolio();
-  const initialAssets = portfolioResult.assets || [];
+  if (!session?.user?.id) redirect("/login");
 
-  return <DashboardView user={session?.user} initialAssets={initialAssets} />;
+  const { holdings, history } = await getPortfolioData(session.user.id);
+
+  return (
+    <DashboardView user={session.user} holdings={holdings} history={history} />
+  );
 }

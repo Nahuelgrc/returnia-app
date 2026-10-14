@@ -2,54 +2,66 @@
 
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { headers } from "next/headers";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { getClientIp, rateLimit } from "@/lib/rate-limit";
 
 const registerSchema = z.object({
-  name: z.string().min(1, { message: "El nombre es obligatorio" }),
-  lastname: z.string().optional(),
-  email: z.string().email({ message: "El correo no es válido" }),
-  password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
+  name: z.string().trim().min(1, { message: "Name is required" }).max(100),
+  lastname: z.string().trim().max(100).optional(),
+  email: z.string().trim().toLowerCase().email({ message: "Email is not valid" }).max(254),
+  password: z
+    .string()
+    .min(10, { message: "Password must be at least 10 characters" })
+    .refine((p) => Buffer.byteLength(p) <= 72, {
+      message: "Password cannot exceed 72 bytes",
+    }),
 });
 
 export async function registerAction(formData: FormData) {
-  const name = formData.get("name");
-  const lastname = formData.get("lastname");
-  const email = formData.get("email");
-  const password = formData.get("password");
+  const ip = getClientIp(await headers());
+  const limit = rateLimit(`register:ip:${ip}`, 3, 60 * 60 * 1000);
+  if (!limit.allowed) {
+    return { error: "Too many sign-ups from this network. Try again later." };
+  }
 
-  const validation = registerSchema.safeParse({ name, lastname, email, password });
+  const validation = registerSchema.safeParse({
+    name: formData.get("name"),
+    lastname: formData.get("lastname") || undefined,
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
 
   if (!validation.success) {
     return { error: validation.error.issues[0].message };
   }
 
-  const { name: validName, lastname: validLastname, email: validEmail, password: validPassword } = validation.data;
-
-  // Combine Name and Lastname for storage as full name
-  const fullName = validLastname ? `${validName} ${validLastname}` : validName;
+  const { name, lastname, email, password } = validation.data;
+  const fullName = lastname ? `${name} ${lastname}` : name;
 
   try {
-    const existingUser = await prisma.user.findUnique({
-      where: { email: validEmail },
-    });
+    const existingUser = await prisma.user.findUnique({ where: { email } });
 
     if (existingUser) {
-      return { error: "El correo ya está registrado" };
+      return { error: "Email is already registered" };
     }
 
-    const passwordHash = await bcrypt.hash(validPassword, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
 
     await prisma.user.create({
-      data: {
-        name: fullName,
-        email: validEmail,
-        passwordHash,
-      },
+      data: { name: fullName, email, passwordHash },
     });
 
     return { success: true };
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { error: "Email is already registered" };
+    }
     console.error("Registration error:", error);
-    return { error: "Error al crear la cuenta. Intenta de nuevo." };
+    return { error: "Error creating the account. Please try again." };
   }
 }
