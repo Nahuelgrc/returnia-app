@@ -56,13 +56,17 @@ export function DashboardView({ user, holdings, history }: DashboardViewProps) {
 
   const handleAddTransaction = async (transaction: TransactionPayload) => {
     setTransactionError(null);
-    const result = await addTransaction(transaction);
-    if (result.error) {
-      setTransactionError(result.error);
-      return;
+    try {
+      const result = await addTransaction(transaction);
+      if (result.error) {
+        setTransactionError(result.error);
+        return;
+      }
+      router.refresh();
+      closeModal();
+    } catch {
+      setTransactionError("Error saving the transaction");
     }
-    router.refresh();
-    closeModal();
   };
 
   const handleConfirmDelete = async () => {
@@ -126,8 +130,12 @@ export function DashboardView({ user, holdings, history }: DashboardViewProps) {
 
         <AssetsTable
           assets={assets}
-          onAdd={() => setIsAddTransactionOpen(true)}
+          onAdd={() => {
+            setTransactionError(null);
+            setIsAddTransactionOpen(true);
+          }}
           onEdit={(asset) => {
+            setTransactionError(null);
             setEditingAsset(asset);
             setIsAddTransactionOpen(true);
           }}

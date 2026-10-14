@@ -7,14 +7,21 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
+  disableClose?: boolean;
 }
 
-export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
+export const Modal = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  disableClose = false,
+}: ModalProps) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && !disableClose) onClose();
     };
 
     if (isOpen) {
@@ -26,7 +33,7 @@ export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
       document.body.style.overflow = "unset";
       window.removeEventListener("keydown", handleEscape);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, disableClose]);
 
   if (!isOpen) return null;
 
@@ -41,7 +48,8 @@ export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
           <h3 className="text-lg font-bold text-foreground">{title}</h3>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500"
+            disabled={disableClose}
+            className="p-1 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500"
           >
             <span className="material-symbols-outlined text-xl">close</span>
           </button>

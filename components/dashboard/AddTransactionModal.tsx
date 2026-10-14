@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { useAssetSearch } from "@/hooks/useAssetSearch";
 import { useAssetPrice } from "@/hooks/useAssetPrice";
@@ -12,7 +12,7 @@ import type {
 interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (transaction: TransactionPayload) => void;
+  onSubmit: (transaction: TransactionPayload) => void | Promise<void>;
   initialTicker?: string;
   initialQuantity?: string;
   initialAssetType?: AssetType;
@@ -26,11 +26,28 @@ const currentLocalDateTime = () => {
     .slice(0, 16);
 };
 
-export const AddTransactionModal = (props: AddTransactionModalProps) => (
-  <Modal isOpen={props.isOpen} onClose={props.onClose} title="Add Transaction">
-    <TransactionForm {...props} />
-  </Modal>
-);
+export const AddTransactionModal = (props: AddTransactionModalProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  return (
+    <Modal
+      isOpen={props.isOpen}
+      onClose={props.onClose}
+      title="Add Transaction"
+      disableClose={isSubmitting}
+    >
+      <TransactionForm
+        {...props}
+        isSubmitting={isSubmitting}
+        setIsSubmitting={setIsSubmitting}
+      />
+    </Modal>
+  );
+};
+
+interface TransactionFormProps extends AddTransactionModalProps {
+  isSubmitting: boolean;
+  setIsSubmitting: (value: boolean) => void;
+}
 
 const TransactionForm = ({
   onClose,
@@ -39,7 +56,9 @@ const TransactionForm = ({
   initialQuantity,
   initialAssetType,
   error,
-}: AddTransactionModalProps) => {
+  isSubmitting,
+  setIsSubmitting,
+}: TransactionFormProps) => {
   const [transactionType, setTransactionType] = useState<Side>("buy");
   const [assetType, setAssetType] = useState<AssetType>(initialAssetType || "crypto");
   const [ticker, setTicker] = useState(initialTicker || "");
@@ -48,6 +67,7 @@ const TransactionForm = ({
   const [comments, setComments] = useState("");
   
   const [showDropdown, setShowDropdown] = useState(false);
+  const submittingRef = useRef(false);
 
   // Use custom hooks for decoupled logic
   const { searchResults, isSearching } = useAssetSearch(ticker, assetType, showDropdown);
@@ -55,17 +75,25 @@ const TransactionForm = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit({
-      type: transactionType,
-      assetType,
-      ticker,
-      quantity: Number(quantity),
-      price: Number(price),
-      date: Number.isNaN(new Date(date).getTime())
-        ? date
-        : new Date(date).toISOString(),
-      comments: comments.trim() ? comments : undefined,
-    });
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        type: transactionType,
+        assetType,
+        ticker,
+        quantity: Number(quantity),
+        price: Number(price),
+        date: Number.isNaN(new Date(date).getTime())
+          ? date
+          : new Date(date).toISOString(),
+        comments: comments.trim() ? comments : undefined,
+      });
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -78,6 +106,7 @@ const TransactionForm = ({
             {error}
           </div>
         )}
+        <fieldset disabled={isSubmitting} className="contents">
         {/* Transaction Type Selector (Buy/Sell) */}
         <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-1">
           <button
@@ -296,17 +325,43 @@ const TransactionForm = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-foreground transition-colors"
+            disabled={isSubmitting}
+            className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-xl shadow-lg shadow-primary/20 transition-all"
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+            className="px-6 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Add
+            {isSubmitting && (
+              <svg
+                className="h-4 w-4 animate-spin"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            )}
+            {isSubmitting ? "Adding..." : "Add"}
           </button>
         </div>
+        </fieldset>
       </form>
     </>
   );
