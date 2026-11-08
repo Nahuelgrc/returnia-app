@@ -75,7 +75,7 @@ export const AllocationChart = ({
                 borderRadius: "8px",
               }}
               itemStyle={{ color: "#fff" }}
-              formatter={(value: string | number | Array<string | number> | undefined) =>
+              formatter={(value) =>
                 value != null
                   ? `$${Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                   : "$0.00"
