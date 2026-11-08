@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 
@@ -38,6 +38,11 @@ beforeEach(() => {
   mocks.findUnique.mockResolvedValue(null);
   mocks.create.mockResolvedValue({ id: "u1" });
   vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.stubEnv("REGISTER_WHITELIST_EMAILS", "ana@example.com,friend@example.com");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("registerAction", () => {
@@ -86,6 +91,34 @@ describe("registerAction", () => {
   it("accepts a password of exactly 72 bytes", async () => {
     const result = await registerAction(form({ ...validFields, password: "a".repeat(72) }));
     expect(result).toEqual({ success: true });
+  });
+
+  it("allows an email present in the whitelist, with case-insensitive comparison", async () => {
+    vi.stubEnv("REGISTER_WHITELIST_EMAILS", "Ana@Example.com");
+    const result = await registerAction(form(validFields));
+    expect(result).toEqual({ success: true });
+  });
+
+  it("rejects an email not present in the whitelist", async () => {
+    vi.stubEnv("REGISTER_WHITELIST_EMAILS", "friend@example.com");
+    const result = await registerAction(form(validFields));
+    expect(result).toEqual({ error: "Registration is not available for this email." });
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects everyone when the whitelist is empty", async () => {
+    vi.stubEnv("REGISTER_WHITELIST_EMAILS", "");
+    const result = await registerAction(form(validFields));
+    expect(result).toEqual({ error: "Registration is not available for this email." });
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects everyone when the whitelist is not defined", async () => {
+    vi.unstubAllEnvs();
+    delete process.env.REGISTER_WHITELIST_EMAILS;
+    const result = await registerAction(form(validFields));
+    expect(result).toEqual({ error: "Registration is not available for this email." });
+    expect(mocks.create).not.toHaveBeenCalled();
   });
 
   it("rejects an already registered email", async () => {

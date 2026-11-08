@@ -17,6 +17,7 @@ interface AddTransactionModalProps {
   initialQuantity?: string;
   initialAssetType?: AssetType;
   error?: string | null;
+  isEditingAsset?: boolean;
 }
 
 const currentLocalDateTime = () => {
@@ -32,7 +33,7 @@ export const AddTransactionModal = (props: AddTransactionModalProps) => {
     <Modal
       isOpen={props.isOpen}
       onClose={props.onClose}
-      title="Add Transaction"
+      title={props.isEditingAsset ? "Edit Transaction" : "Add Transaction"}
       disableClose={isSubmitting}
     >
       <TransactionForm
@@ -56,6 +57,7 @@ const TransactionForm = ({
   initialQuantity,
   initialAssetType,
   error,
+  isEditingAsset,
   isSubmitting,
   setIsSubmitting,
 }: TransactionFormProps) => {
@@ -126,6 +128,7 @@ const TransactionForm = ({
         <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-1">
           <button
             type="button"
+            tabIndex={-1}
             onClick={() => setTransactionType("buy")}
             className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
               transactionType === "buy"
@@ -137,6 +140,7 @@ const TransactionForm = ({
           </button>
           <button
             type="button"
+            tabIndex={-1}
             onClick={() => setTransactionType("sell")}
             className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
               transactionType === "sell"
@@ -152,6 +156,7 @@ const TransactionForm = ({
         <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-1">
           <button
             type="button"
+            tabIndex={-1}
             onClick={() => setAssetType("crypto")}
             className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
               assetType === "crypto"
@@ -163,6 +168,7 @@ const TransactionForm = ({
           </button>
           <button
             type="button"
+            tabIndex={-1}
             onClick={() => setAssetType("stock")}
             className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
               assetType === "stock"
@@ -315,6 +321,7 @@ const TransactionForm = ({
                 <div className="flex bg-slate-100 dark:bg-slate-900 rounded-md p-0.5">
                   <button
                     type="button"
+                    tabIndex={-1}
                     onClick={() => setPriceMode("unit")}
                     className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-all ${
                       priceMode === "unit"
@@ -326,6 +333,7 @@ const TransactionForm = ({
                   </button>
                   <button
                     type="button"
+                    tabIndex={-1}
                     onClick={() => setPriceMode("total")}
                     className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-all ${
                       priceMode === "total"
@@ -418,7 +426,13 @@ const TransactionForm = ({
                 ></path>
               </svg>
             )}
-            {isSubmitting ? "Adding..." : "Add"}
+            {isEditingAsset
+              ? isSubmitting
+                ? "Saving..."
+                : "Save"
+              : isSubmitting
+                ? "Adding..."
+                : "Add"}
           </button>
         </div>
         </fieldset>

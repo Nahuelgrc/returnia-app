@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
+import { isEmailWhitelistedForRegistration } from "@/lib/register-whitelist";
 
 const registerSchema = z.object({
   name: z.string().trim().min(1, { message: "Name is required" }).max(100),
@@ -39,6 +40,10 @@ export async function registerAction(formData: FormData) {
 
   const { name, lastname, email, password } = validation.data;
   const fullName = lastname ? `${name} ${lastname}` : name;
+
+  if (!isEmailWhitelistedForRegistration(email)) {
+    return { error: "Registration is not available for this email." };
+  }
 
   try {
     const existingUser = await prisma.user.findUnique({ where: { email } });

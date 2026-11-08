@@ -151,6 +151,7 @@ export function DashboardView({ user, holdings, history }: DashboardViewProps) {
         initialQuantity={editingAsset?.balance}
         initialAssetType={editingAsset?.type}
         error={transactionError}
+        isEditingAsset={!!editingAsset}
       />
 
       <ConfirmDialog
