@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildAssets, getProviderSymbols, totalValue } from "@/lib/portfolio-view";
+import {
+  buildAssets,
+  getProviderSymbols,
+  totalInvested,
+  totalValue,
+} from "@/lib/portfolio-view";
 import type { Holding, Quote } from "@/lib/types";
 
 const btc: Holding = { ticker: "BTC", type: "crypto", balance: "2", averageCost: 100 };
@@ -60,5 +65,15 @@ describe("totalValue", () => {
 
   it("is 0 without assets", () => {
     expect(totalValue([])).toBe(0);
+  });
+});
+
+describe("totalInvested", () => {
+  it("sums balance times average cost", () => {
+    expect(totalInvested(buildAssets([btc, aapl], quotes))).toBe(700);
+  });
+
+  it("is 0 without assets", () => {
+    expect(totalInvested([])).toBe(0);
   });
 });

@@ -1,4 +1,13 @@
-export function HeroBalance({ total }: { total: number }) {
+export function HeroBalance({
+  total,
+  invested,
+}: {
+  total: number;
+  invested: number;
+}) {
+  const gain = total - invested;
+  const gainPercent = invested > 0 ? (gain / invested) * 100 : 0;
+
   return (
     <section className="flex flex-col lg:flex-row gap-6 items-end justify-between">
       <div className="flex flex-col gap-1">
@@ -13,6 +22,27 @@ export function HeroBalance({ total }: { total: number }) {
               maximumFractionDigits: 2,
             })}
           </h1>
+        </div>
+      </div>
+      <div className="flex flex-col gap-1">
+        <p className="text-slate-500 dark:text-[#9da6b9] font-medium">
+          Total Gain/Loss
+        </p>
+        <div
+          className={`flex items-center gap-1 text-2xl font-extrabold tracking-tight ${
+            gain >= 0 ? "text-success" : "text-danger"
+          }`}
+        >
+          <span className="material-symbols-outlined">
+            {gain >= 0 ? "trending_up" : "trending_down"}
+          </span>
+          {gain > 0 ? "+" : gain < 0 ? "-" : ""}$
+          {Math.abs(gain).toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}{" "}
+          ({gainPercent > 0 ? "+" : ""}
+          {gainPercent.toFixed(2)}%)
         </div>
       </div>
     </section>

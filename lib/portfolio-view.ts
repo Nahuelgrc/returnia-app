@@ -28,3 +28,9 @@ export const buildAssets = (holdings: Holding[], quotes: Quote[]): Asset[] => {
 
 export const totalValue = (assets: Asset[]) =>
   assets.reduce((sum, asset) => sum + asset.value, 0);
+
+export const totalInvested = (assets: Asset[]) =>
+  assets.reduce(
+    (sum, asset) => sum + parseFloat(asset.balance) * asset.averageCost,
+    0,
+  );

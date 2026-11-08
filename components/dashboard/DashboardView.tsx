@@ -16,7 +16,7 @@ import {
 } from "@/app/actions/transaction";
 import { usePortfolioPrices } from "@/hooks/usePortfolioPrices";
 import { PERIODS, filterHistoryByPeriod, type Period } from "@/lib/chart";
-import { buildAssets, totalValue } from "@/lib/portfolio-view";
+import { buildAssets, totalInvested, totalValue } from "@/lib/portfolio-view";
 import type { TransactionPayload } from "@/lib/schemas/transaction";
 import type { Asset, HistoryPoint, Holding } from "@/lib/types";
 
@@ -97,7 +97,7 @@ export function DashboardView({ user, holdings, history }: DashboardViewProps) {
           </div>
         )}
 
-        <HeroBalance total={totalValue(assets)} />
+        <HeroBalance total={totalValue(assets)} invested={totalInvested(assets)} />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 flex flex-col gap-4">
