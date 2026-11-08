@@ -10,8 +10,12 @@ interface AssetsTableProps {
   onDelete: (asset: Asset) => void;
 }
 
+type SortKey = "name" | "balance" | "value" | "change";
+type SortDirection = "asc" | "desc";
+
 export function AssetsTable({ assets, onAdd, onEdit, onDelete }: AssetsTableProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [sort, setSort] = React.useState<{ key: SortKey; direction: SortDirection } | null>(null);
 
   const query = searchQuery.toLowerCase();
   const filteredAssets = assets.filter(
@@ -19,6 +23,34 @@ export function AssetsTable({ assets, onAdd, onEdit, onDelete }: AssetsTableProp
       asset.name.toLowerCase().includes(query) ||
       asset.ticker.toLowerCase().includes(query),
   );
+
+  const sortedAssets = React.useMemo(() => {
+    if (!sort) return filteredAssets;
+    const { key, direction } = sort;
+    const multiplier = direction === "asc" ? 1 : -1;
+    return [...filteredAssets].sort((a, b) => {
+      if (key === "name") {
+        return a.name.localeCompare(b.name) * multiplier;
+      }
+      const aValue = key === "balance" ? parseFloat(a.balance) : a[key];
+      const bValue = key === "balance" ? parseFloat(b.balance) : b[key];
+      return (aValue - bValue) * multiplier;
+    });
+  }, [filteredAssets, sort]);
+
+  function handleSort(key: SortKey) {
+    setSort((current) => {
+      if (current?.key === key) {
+        return { key, direction: current.direction === "asc" ? "desc" : "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+  }
+
+  function sortIcon(key: SortKey) {
+    if (sort?.key !== key) return "unfold_more";
+    return sort.direction === "asc" ? "arrow_upward" : "arrow_downward";
+  }
 
   return (
     <section className="flex flex-col gap-4">
@@ -50,16 +82,60 @@ export function AssetsTable({ assets, onAdd, onEdit, onDelete }: AssetsTableProp
         <table className="w-full text-left">
           <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">
             <tr>
-              <th className="px-6 py-4">Asset</th>
+              <th className="px-6 py-4">
+                <button
+                  type="button"
+                  onClick={() => handleSort("name")}
+                  className="flex items-center gap-1 cursor-pointer hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                >
+                  Asset
+                  <span className="material-symbols-outlined text-sm leading-none">
+                    {sortIcon("name")}
+                  </span>
+                </button>
+              </th>
               <th className="px-6 py-4">Price</th>
-              <th className="px-6 py-4">Quantity</th>
-              <th className="px-6 py-4 text-right">Value</th>
-              <th className="px-6 py-4 text-right">Return (%)</th>
+              <th className="px-6 py-4">
+                <button
+                  type="button"
+                  onClick={() => handleSort("balance")}
+                  className="flex items-center gap-1 cursor-pointer hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                >
+                  Quantity
+                  <span className="material-symbols-outlined text-sm leading-none">
+                    {sortIcon("balance")}
+                  </span>
+                </button>
+              </th>
+              <th className="px-6 py-4 text-right">
+                <button
+                  type="button"
+                  onClick={() => handleSort("value")}
+                  className="flex items-center gap-1 ml-auto cursor-pointer hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                >
+                  Value
+                  <span className="material-symbols-outlined text-sm leading-none">
+                    {sortIcon("value")}
+                  </span>
+                </button>
+              </th>
+              <th className="px-6 py-4 text-right">
+                <button
+                  type="button"
+                  onClick={() => handleSort("change")}
+                  className="flex items-center gap-1 ml-auto cursor-pointer hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                >
+                  Return (%)
+                  <span className="material-symbols-outlined text-sm leading-none">
+                    {sortIcon("change")}
+                  </span>
+                </button>
+              </th>
               <th className="px-6 py-4 text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {filteredAssets.map((asset) => (
+            {sortedAssets.map((asset) => (
               <tr
                 key={asset.ticker}
                 className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
