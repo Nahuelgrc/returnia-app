@@ -8,6 +8,7 @@ import { AllocationChart } from "@/components/dashboard/AllocationChart";
 import { Header } from "@/components/dashboard/Header";
 import { HeroBalance } from "@/components/dashboard/HeroBalance";
 import { AssetsTable } from "@/components/dashboard/AssetsTable";
+import { Sidebar, type DashboardViewKey } from "@/components/dashboard/Sidebar";
 import { TransactionsHistory } from "@/components/dashboard/TransactionsHistory";
 import { AddTransactionModal } from "@/components/dashboard/AddTransactionModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -35,6 +36,7 @@ export function DashboardView({
   transactions,
 }: DashboardViewProps) {
   const router = useRouter();
+  const [view, setView] = React.useState<DashboardViewKey>("dashboard");
   const [timePeriod, setTimePeriod] = React.useState<Period>("ALL");
   const [isAddTransactionOpen, setIsAddTransactionOpen] = React.useState(false);
   const [editingAsset, setEditingAsset] = React.useState<Asset | null>(null);
@@ -92,9 +94,14 @@ export function DashboardView({
 
   return (
     <>
-      <Header title="Dashboard" user={user} />
+      <Header
+        title={view === "dashboard" ? "Dashboard" : "Transaction History"}
+        user={user}
+      />
 
-      <div className="p-8 max-w-7xl mx-auto w-full flex flex-col gap-8">
+      <div className="flex flex-col md:flex-row w-full">
+      <Sidebar active={view} onSelect={setView} />
+      <div className="p-8 flex-1 min-w-0 flex flex-col gap-8">
         {deleteError && (
           <div
             role="alert"
@@ -104,6 +111,8 @@ export function DashboardView({
           </div>
         )}
 
+        {view === "dashboard" ? (
+        <>
         <HeroBalance total={totalValue(assets)} invested={totalInvested(assets)} />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -149,7 +158,11 @@ export function DashboardView({
           onDelete={setDeleteTarget}
         />
 
-        <TransactionsHistory transactions={transactions} />
+        </>
+        ) : (
+          <TransactionsHistory transactions={transactions} />
+        )}
+      </div>
       </div>
 
       <AddTransactionModal

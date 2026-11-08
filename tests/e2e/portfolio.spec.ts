@@ -147,3 +147,18 @@ test("deleting an asset does not affect another user with the same ticker", asyn
   await firstContext.close();
   await secondContext.close();
 });
+
+test("the sidebar switches between the dashboard and the transaction history", async ({ page }) => {
+  const user = await createFreshUser([btc(2)]);
+  await login(page, user.email);
+
+  await expect(page.getByTestId("assets-table")).toBeVisible();
+  await expect(page.getByTestId("transactions-history")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Transaction History" }).click();
+  await expect(page.getByTestId("transactions-history")).toContainText("BTC");
+  await expect(page.getByTestId("assets-table")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Dashboard", exact: true }).click();
+  await expect(page.getByTestId("assets-table")).toBeVisible();
+});

@@ -9,7 +9,6 @@ interface TransactionsHistoryProps {
 export function TransactionsHistory({ transactions }: TransactionsHistoryProps) {
   return (
     <section className="flex flex-col gap-4">
-      <h3 className="text-lg font-bold px-1">Transaction History</h3>
       <div
         data-testid="transactions-history"
         className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden"
@@ -67,6 +66,7 @@ export function TransactionsHistory({ transactions }: TransactionsHistoryProps) 
                       $
                       {(transaction.quantity * transaction.price).toLocaleString(
                         "en-US",
+                        { maximumFractionDigits: 2 },
                       )}
                     </td>
                     <td

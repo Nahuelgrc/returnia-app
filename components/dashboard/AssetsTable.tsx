@@ -166,7 +166,7 @@ export function AssetsTable({ assets, onAdd, onEdit, onDelete }: AssetsTableProp
                   {asset.ticker}
                 </td>
                 <td className="px-6 py-4 text-right text-sm font-bold">
-                  ${asset.value.toLocaleString("en-US")}
+                  ${asset.value.toLocaleString("en-US", { maximumFractionDigits: 2 })}
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div

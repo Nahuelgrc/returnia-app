@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 const COLORS = [
@@ -39,6 +39,8 @@ export const AllocationChart = ({
     return finalData;
   }, [data]);
 
+  const [isHovering, setIsHovering] = useState(false);
+
   const totalValue = useMemo(
     () => processedData.reduce((sum, item) => sum + item.value, 0),
     [processedData],
@@ -59,6 +61,8 @@ export const AllocationChart = ({
               dataKey="value"
               stroke="none"
               cornerRadius={6}
+              onMouseEnter={() => setIsHovering(true)}
+              onMouseLeave={() => setIsHovering(false)}
             >
               {processedData.map((entry, index) => {
                 const colorIndex =
@@ -84,7 +88,9 @@ export const AllocationChart = ({
           </PieChart>
         </ResponsiveContainer>
         {/* Center Text Overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-4">
+        <div className={`absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-4 transition-opacity ${
+            isHovering ? "opacity-0" : "opacity-100"
+          }`}>
           <p className="text-xs font-bold text-slate-500 uppercase"></p>
           <p className="text-xl font-extrabold text-foreground">Assets</p>
         </div>
