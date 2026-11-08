@@ -56,8 +56,8 @@ export const PortfolioChart = ({
                 strokeWidth: 1,
                 strokeDasharray: "4 4",
               }}
-              formatter={(value: number | undefined) =>
-                [`$${value ?? 0}`, "Value"] as [string, string]
+              formatter={(value: string | number | Array<string | number> | undefined) =>
+                [`$${Number(value) ?? 0}`, "Value"] as [string, string]
               }
             />
             <Area
