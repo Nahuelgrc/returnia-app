@@ -65,7 +65,9 @@ const TransactionForm = ({
   const [quantity, setQuantity] = useState(initialQuantity || "");
   const [date, setDate] = useState(currentLocalDateTime);
   const [comments, setComments] = useState("");
-  
+  const [priceMode, setPriceMode] = useState<"unit" | "total">("unit");
+  const [totalSpent, setTotalSpent] = useState("");
+
   const [showDropdown, setShowDropdown] = useState(false);
   const submittingRef = useRef(false);
 
@@ -73,9 +75,22 @@ const TransactionForm = ({
   const { searchResults, isSearching } = useAssetSearch(ticker, assetType, showDropdown);
   const { price, setPrice, isFetchingPrice } = useAssetPrice(ticker, assetType);
 
+  const quantityNum = Number(quantity);
+  const totalSpentNum = Number(totalSpent);
+  const computedUnitPrice =
+    priceMode === "total" &&
+    quantity.trim() !== "" &&
+    totalSpent.trim() !== "" &&
+    quantityNum > 0 &&
+    totalSpentNum > 0
+      ? totalSpentNum / quantityNum
+      : null;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submittingRef.current) return;
+    if (priceMode === "total" && computedUnitPrice === null) return;
+    const unitPrice = priceMode === "total" ? computedUnitPrice! : Number(price);
     submittingRef.current = true;
     setIsSubmitting(true);
     try {
@@ -83,8 +98,8 @@ const TransactionForm = ({
         type: transactionType,
         assetType,
         ticker,
-        quantity: Number(quantity),
-        price: Number(price),
+        quantity: quantityNum,
+        price: unitPrice,
         date: Number.isNaN(new Date(date).getTime())
           ? date
           : new Date(date).toISOString(),
@@ -269,43 +284,88 @@ const TransactionForm = ({
           <div className="flex-1 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-500 uppercase">
-                Unit Price
+                {priceMode === "unit" ? "Unit Price" : "Total Spent"}
               </label>
-              {isFetchingPrice && (
-                <span className="text-[10px] text-primary flex items-center gap-1 font-bold animate-pulse">
-                  <svg
-                    className="h-3 w-3 animate-spin"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+              <div className="flex items-center gap-2">
+                {isFetchingPrice && priceMode === "unit" && (
+                  <span className="text-[10px] text-primary flex items-center gap-1 font-bold animate-pulse">
+                    <svg
+                      className="h-3 w-3 animate-spin"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Searching...
+                  </span>
+                )}
+                <div className="flex bg-slate-100 dark:bg-slate-900 rounded-md p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setPriceMode("unit")}
+                    className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-all ${
+                      priceMode === "unit"
+                        ? "bg-white dark:bg-slate-800 shadow-sm text-primary"
+                        : "text-slate-500 hover:text-foreground"
+                    }`}
                   >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Searching...
-                </span>
-              )}
+                    Unit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPriceMode("total")}
+                    className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-all ${
+                      priceMode === "total"
+                        ? "bg-white dark:bg-slate-800 shadow-sm text-primary"
+                        : "text-slate-500 hover:text-foreground"
+                    }`}
+                  >
+                    Total
+                  </button>
+                </div>
+              </div>
             </div>
-            <input
-              type="number"
-              required
-              step="any"
-              placeholder="$0.00"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary outline-none transition-all"
-            />
+            {priceMode === "unit" ? (
+              <input
+                type="number"
+                required
+                step="any"
+                placeholder="$0.00"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary outline-none transition-all"
+              />
+            ) : (
+              <>
+                <input
+                  type="number"
+                  required
+                  step="any"
+                  placeholder="$0.00"
+                  value={totalSpent}
+                  onChange={(e) => setTotalSpent(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary outline-none transition-all"
+                />
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {computedUnitPrice !== null
+                    ? `≈ $${computedUnitPrice.toFixed(2)} / unit`
+                    : "—"}
+                </span>
+              </>
+            )}
           </div>
         </div>
 

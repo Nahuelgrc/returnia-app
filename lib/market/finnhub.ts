@@ -80,7 +80,7 @@ export async function searchFinnhubSymbols(
           r.displaySymbol.length <= 8 &&
           !r.displaySymbol.includes(".") &&
           !r.displaySymbol.includes("-") &&
-          (r.type === "Common Stock" || r.type === "ETP" || !r.type),
+          (r.type === "Common Stock" || r.type === "ETP" || r.type === "ADR" || !r.type),
       )
       .slice(0, 10)
       .map((r) => ({
