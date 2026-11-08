@@ -1,5 +1,7 @@
 import type { NextAuthConfig } from "next-auth"
 
+const PUBLIC_PATHS = ['/', '/login', '/register'];
+
 export const authConfig = {
   pages: {
     signIn: '/login',
@@ -20,8 +22,10 @@ export const authConfig = {
       } else if (nextUrl.pathname === "/") {
         if (isLoggedIn) return Response.redirect(new URL('/dashboard', nextUrl));
         return Response.redirect(new URL('/login', nextUrl));
+      } else if (PUBLIC_PATHS.includes(nextUrl.pathname)) {
+        return true;
       }
-      return true;
+      return isLoggedIn;
     },
     async session({ session, token }) {
       if (token?.sub && session.user) {

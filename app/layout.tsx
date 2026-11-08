@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
+import { headers } from "next/headers";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
@@ -14,11 +15,12 @@ export const metadata: Metadata = {
   description: "Track your crypto and stock assets.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce");
   return (
     <html lang="en" className="dark">
       <head>
