@@ -8,6 +8,7 @@ import { AllocationChart } from "@/components/dashboard/AllocationChart";
 import { Header } from "@/components/dashboard/Header";
 import { HeroBalance } from "@/components/dashboard/HeroBalance";
 import { AssetsTable } from "@/components/dashboard/AssetsTable";
+import { TransactionsHistory } from "@/components/dashboard/TransactionsHistory";
 import { AddTransactionModal } from "@/components/dashboard/AddTransactionModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
@@ -18,15 +19,21 @@ import { usePortfolioPrices } from "@/hooks/usePortfolioPrices";
 import { PERIODS, filterHistoryByPeriod, type Period } from "@/lib/chart";
 import { buildAssets, totalInvested, totalValue } from "@/lib/portfolio-view";
 import type { TransactionPayload } from "@/lib/schemas/transaction";
-import type { Asset, HistoryPoint, Holding } from "@/lib/types";
+import type { Asset, HistoryPoint, Holding, TransactionRecord } from "@/lib/types";
 
 interface DashboardViewProps {
   user?: User;
   holdings: Holding[];
   history: HistoryPoint[];
+  transactions: TransactionRecord[];
 }
 
-export function DashboardView({ user, holdings, history }: DashboardViewProps) {
+export function DashboardView({
+  user,
+  holdings,
+  history,
+  transactions,
+}: DashboardViewProps) {
   const router = useRouter();
   const [timePeriod, setTimePeriod] = React.useState<Period>("ALL");
   const [isAddTransactionOpen, setIsAddTransactionOpen] = React.useState(false);
@@ -141,6 +148,8 @@ export function DashboardView({ user, holdings, history }: DashboardViewProps) {
           }}
           onDelete={setDeleteTarget}
         />
+
+        <TransactionsHistory transactions={transactions} />
       </div>
 
       <AddTransactionModal

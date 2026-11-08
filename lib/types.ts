@@ -1,4 +1,4 @@
-import type { AssetType } from "@/lib/schemas/transaction";
+import type { AssetType, Side } from "@/lib/schemas/transaction";
 
 export interface Holding {
   ticker: string;
@@ -17,6 +17,17 @@ export interface Asset extends Holding {
 export interface HistoryPoint {
   date: string;
   value: number;
+}
+
+export interface TransactionRecord {
+  id: string;
+  ticker: string;
+  assetType: AssetType;
+  side: Side;
+  quantity: number;
+  price: number;
+  comments: string | null;
+  executedAt: string;
 }
 
 export interface Quote {
