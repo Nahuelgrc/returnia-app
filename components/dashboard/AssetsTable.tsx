@@ -78,7 +78,10 @@ export function AssetsTable({ assets, onAdd, onEdit, onDelete }: AssetsTableProp
           Add Transaction
         </button>
       </div>
-      <div className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+      <div
+        data-testid="assets-table"
+        className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden"
+      >
         <table className="w-full text-left">
           <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">
             <tr>
@@ -158,7 +161,7 @@ export function AssetsTable({ assets, onAdd, onEdit, onDelete }: AssetsTableProp
                 </td>
                 <td className="px-6 py-4 text-sm font-medium">
                   {parseFloat(asset.balance).toLocaleString("en-US", {
-                    maximumFractionDigits: 8,
+                    maximumFractionDigits: 2,
                   })}{" "}
                   {asset.ticker}
                 </td>

@@ -12,7 +12,7 @@ const btc = (quantity: number): SeedTransaction => ({
 });
 
 const row = (page: import("@playwright/test").Page, ticker: string) =>
-  page.locator("tbody tr", { hasText: ticker });
+  page.getByTestId("assets-table").locator("tbody tr", { hasText: ticker });
 
 test.beforeEach(async ({ page }) => {
   await mockMarket(page);

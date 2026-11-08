@@ -10,7 +10,10 @@ export function TransactionsHistory({ transactions }: TransactionsHistoryProps) 
   return (
     <section className="flex flex-col gap-4">
       <h3 className="text-lg font-bold px-1">Transaction History</h3>
-      <div className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+      <div
+        data-testid="transactions-history"
+        className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden"
+      >
         {transactions.length === 0 ? (
           <p className="px-6 py-8 text-sm text-slate-500 dark:text-slate-400 text-center">
             No transactions yet.
@@ -54,7 +57,7 @@ export function TransactionsHistory({ transactions }: TransactionsHistoryProps) 
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-right">
                       {transaction.quantity.toLocaleString("en-US", {
-                        maximumFractionDigits: 8,
+                        maximumFractionDigits: 2,
                       })}
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-right">
