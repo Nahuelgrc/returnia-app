@@ -3,6 +3,10 @@ export const E2E_APP_PORT = Number(process.env.E2E_APP_PORT ?? 3100);
 export const E2E_BASE_URL = `http://127.0.0.1:${E2E_APP_PORT}`;
 export const E2E_DB_URL = `postgresql://postgres:postgres@127.0.0.1:${E2E_DB_PORT}/postgres?sslmode=disable&connection_limit=1&pgbouncer=true`;
 
+export const E2E_ALICE_EMAIL = "alice@e2e.test";
+export const E2E_SIGNUP_EMAIL = "new-user@e2e.test";
+export const E2E_NOT_WHITELISTED_EMAIL = "outsider@e2e.test";
+
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
 
 export function assertLocalDatabase(connectionString: string | undefined) {
@@ -30,5 +34,6 @@ export const appServerEnv = () => ({
   AUTH_URL: E2E_BASE_URL,
   AUTH_TRUST_HOST: "true",
   FINNHUB_API_KEY: "e2e-unused",
+  REGISTER_WHITELIST_EMAILS: [E2E_ALICE_EMAIL, E2E_SIGNUP_EMAIL].join(","),
   PORT: String(E2E_APP_PORT),
 });

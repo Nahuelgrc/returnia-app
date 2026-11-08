@@ -1,10 +1,10 @@
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
-import { E2E_DB_URL, assertLocalDatabase } from "./env";
+import { E2E_ALICE_EMAIL, E2E_DB_URL, assertLocalDatabase } from "./env";
 
 export const PASSWORD = "e2e-password-123";
 
-export const ALICE = { email: "alice@e2e.test", name: "Alice Seed" };
+export const ALICE = { email: E2E_ALICE_EMAIL, name: "Alice Seed" };
 export const BOB = { email: "bob@e2e.test", name: "Bob Seed" };
 
 export interface SeedTransaction {

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { E2E_NOT_WHITELISTED_EMAIL, E2E_SIGNUP_EMAIL } from "./env";
 import { ALICE, PASSWORD } from "./seed";
 import { login, logout, mockMarket } from "./helpers";
 
@@ -7,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("sign-up, logout and login return to the dashboard", async ({ page }) => {
-  const email = `new-${Date.now()}@e2e.test`;
+  const email = E2E_SIGNUP_EMAIL;
 
   await page.goto("/register");
   await page.getByPlaceholder("First name", { exact: true }).fill("New");
@@ -45,6 +46,17 @@ test("sign-up rejects an already registered email", async ({ page }) => {
   await page.getByPlaceholder("Confirm Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign Up" }).click();
   await expect(page.getByText("Email is already registered")).toBeVisible();
+});
+
+test("sign-up rejects an email outside the whitelist", async ({ page }) => {
+  await page.goto("/register");
+  await page.getByPlaceholder("First name", { exact: true }).fill("Outsider");
+  await page.getByPlaceholder("name@example.com").fill(E2E_NOT_WHITELISTED_EMAIL);
+  await page.getByPlaceholder("Password", { exact: true }).fill(PASSWORD);
+  await page.getByPlaceholder("Confirm Password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Sign Up" }).click();
+  await expect(page.getByText("Registration is not available for this email.")).toBeVisible();
+  await expect(page).toHaveURL(/\/register/);
 });
 
 test("dashboard without a session redirects to login", async ({ page }) => {
