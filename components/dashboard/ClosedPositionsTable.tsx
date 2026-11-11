@@ -51,9 +51,9 @@ export function ClosedPositionsTable({ positions }: ClosedPositionsTableProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {sortedPositions.map((position) => (
+            {sortedPositions.map((position, index) => (
               <tr
-                key={position.ticker}
+                key={`${position.ticker}-${index}`}
                 className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
               >
                 <td className="px-6 py-4 flex items-center gap-3">

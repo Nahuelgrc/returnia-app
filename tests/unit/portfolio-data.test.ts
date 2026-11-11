@@ -34,11 +34,26 @@ describe("getPortfolioData", () => {
     ]);
     const data = await getPortfolioData("u");
     expect(data.holdings.map((h) => h.ticker)).toEqual(["BTC"]);
-    expect(data.holdings[0].realizedPnl).toBe(0);
     expect(data.realizedPnl).toBe(50);
     expect(data.closedPositions).toEqual([
       { ticker: "ETH", type: "crypto", totalBought: 100, totalSold: 150, realizedPnl: 50 },
     ]);
+  });
+
+  it("keeps the closed cycle when the asset is bought again", async () => {
+    mocks.findMany.mockResolvedValue([
+      { ...row("buy", "1", "100", "2024-01-01T00:00:00Z", "a"), tickerName: "SPCX" },
+      { ...row("sell", "1", "150", "2024-01-02T00:00:00Z", "b"), tickerName: "SPCX" },
+      { ...row("buy", "2", "10", "2024-01-03T00:00:00Z", "c"), tickerName: "SPCX" },
+    ]);
+    const data = await getPortfolioData("u");
+    expect(data.holdings).toEqual([
+      { ticker: "SPCX", type: "crypto", balance: "2", averageCost: 10 },
+    ]);
+    expect(data.closedPositions).toEqual([
+      { ticker: "SPCX", type: "crypto", totalBought: 100, totalSold: 150, realizedPnl: 50 },
+    ]);
+    expect(data.realizedPnl).toBe(50);
   });
 
   it("queries only the user transactions", async () => {
@@ -70,7 +85,6 @@ describe("getPortfolioData", () => {
         type: "crypto",
         balance: "1",
         averageCost: 100.123,
-        realizedPnl: 399.88,
       },
     ]);
     expect(data.realizedPnl).toBe(399.88);

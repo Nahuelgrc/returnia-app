@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma as db } from "@/lib/db";
 import {
+  computeClosedCycles,
   computeHistory,
   computeHoldings,
   computeRealizedPnl,
@@ -45,37 +46,15 @@ export async function getPortfolioData(userId: string): Promise<{
     type: h.type,
     balance: h.balance.toFixed(),
     averageCost: h.averageCost.toNumber(),
-    realizedPnl: (realizedByTicker.get(h.ticker) ?? new Prisma.Decimal(0))
-      .toDecimalPlaces(2)
-      .toNumber(),
   }));
 
-  const heldTickers = new Set(holdings.map((h) => h.ticker));
-  const closedByTicker = new Map<
-    string,
-    { type: ClosedPosition["type"]; bought: Prisma.Decimal; sold: Prisma.Decimal }
-  >();
-  for (const t of rawTransactions) {
-    if (heldTickers.has(t.tickerName)) continue;
-    const entry = closedByTicker.get(t.tickerName) ?? {
-      type: t.assetType,
-      bought: new Prisma.Decimal(0),
-      sold: new Prisma.Decimal(0),
-    };
-    const amount = new Prisma.Decimal(t.quantity).times(t.price);
-    if (t.side === "buy") entry.bought = entry.bought.plus(amount);
-    else entry.sold = entry.sold.plus(amount);
-    closedByTicker.set(t.tickerName, entry);
-  }
-  const closedPositions = Array.from(closedByTicker.entries())
-    .map(([ticker, entry]) => ({
-      ticker,
-      type: entry.type,
-      totalBought: entry.bought.toDecimalPlaces(2).toNumber(),
-      totalSold: entry.sold.toDecimalPlaces(2).toNumber(),
-      realizedPnl: (realizedByTicker.get(ticker) ?? new Prisma.Decimal(0))
-        .toDecimalPlaces(2)
-        .toNumber(),
+  const closedPositions = computeClosedCycles(rawTransactions)
+    .map((cycle) => ({
+      ticker: cycle.ticker,
+      type: cycle.type,
+      totalBought: cycle.totalBought.toDecimalPlaces(2).toNumber(),
+      totalSold: cycle.totalSold.toDecimalPlaces(2).toNumber(),
+      realizedPnl: cycle.realizedPnl.toDecimalPlaces(2).toNumber(),
     }))
     .sort((a, b) => b.realizedPnl - a.realizedPnl);
 

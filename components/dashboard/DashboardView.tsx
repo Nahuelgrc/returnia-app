@@ -135,16 +135,26 @@ export function DashboardView({
     setDeleteTransactionTarget(null);
   };
 
+  const isTransactions = view === "transactions";
+
   return (
-    <>
+    <div className={isTransactions ? "flex flex-col h-screen" : undefined}>
       <Header
         title={view === "dashboard" ? "Dashboard" : "Transaction History"}
         user={user}
       />
 
-      <div className="flex flex-col md:flex-row w-full">
+      <div
+        className={`flex flex-col md:flex-row w-full ${
+          isTransactions ? "flex-1 min-h-0" : ""
+        }`}
+      >
       <Sidebar active={view} onSelect={setView} />
-      <div className="p-8 flex-1 min-w-0 flex flex-col gap-8">
+      <div
+        className={`p-8 flex-1 min-w-0 flex flex-col gap-8 ${
+          isTransactions ? "min-h-0" : ""
+        }`}
+      >
         {deleteError && (
           <div
             role="alert"
@@ -281,6 +291,6 @@ export function DashboardView({
         variant="danger"
         isLoading={isDeleting}
       />
-    </>
+    </div>
   );
 }

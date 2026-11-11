@@ -26,11 +26,23 @@ export interface HistoryEntry {
   invested: Decimal;
 }
 
+export interface ClosedCycle {
+  ticker: string;
+  type: AssetType;
+  totalBought: Decimal;
+  totalSold: Decimal;
+  realizedPnl: Decimal;
+}
+
 interface Position {
   type: AssetType;
   balance: Decimal;
   totalInvested: Decimal;
   realizedPnl: Decimal;
+  cycleBought: Decimal;
+  cycleSold: Decimal;
+  cycleRealized: Decimal;
+  closedCycles: Omit<ClosedCycle, "ticker" | "type">[];
 }
 
 const sortChronologically = (transactions: PortfolioTransaction[]) =>
@@ -52,6 +64,10 @@ const positionFor = (
       balance: new Decimal(0),
       totalInvested: new Decimal(0),
       realizedPnl: new Decimal(0),
+      cycleBought: new Decimal(0),
+      cycleSold: new Decimal(0),
+      cycleRealized: new Decimal(0),
+      closedCycles: [],
     };
     positions.set(tx.tickerName, position);
   }
@@ -65,14 +81,16 @@ const applyTransaction = (position: Position, tx: PortfolioTransaction) => {
     position.totalInvested = position.totalInvested.plus(
       quantity.times(tx.price),
     );
+    position.cycleBought = position.cycleBought.plus(quantity.times(tx.price));
     return;
   }
   if (position.balance.lte(0)) return;
   const averageCost = position.totalInvested.div(position.balance);
   const soldQuantity = Decimal.min(quantity, position.balance);
-  position.realizedPnl = position.realizedPnl.plus(
-    soldQuantity.times(new Decimal(tx.price).minus(averageCost)),
-  );
+  const pnl = soldQuantity.times(new Decimal(tx.price).minus(averageCost));
+  position.realizedPnl = position.realizedPnl.plus(pnl);
+  position.cycleRealized = position.cycleRealized.plus(pnl);
+  position.cycleSold = position.cycleSold.plus(quantity.times(tx.price));
   position.balance = position.balance.minus(quantity);
   position.totalInvested = position.totalInvested.minus(
     quantity.times(averageCost),
@@ -80,6 +98,14 @@ const applyTransaction = (position: Position, tx: PortfolioTransaction) => {
   if (position.balance.lte(0)) {
     position.balance = new Decimal(0);
     position.totalInvested = new Decimal(0);
+    position.closedCycles.push({
+      totalBought: position.cycleBought,
+      totalSold: position.cycleSold,
+      realizedPnl: position.cycleRealized,
+    });
+    position.cycleBought = new Decimal(0);
+    position.cycleSold = new Decimal(0);
+    position.cycleRealized = new Decimal(0);
   }
 };
 
@@ -117,6 +143,24 @@ export const computeRealizedPnl = (
       ticker,
       position.realizedPnl,
     ]),
+  );
+};
+
+export const computeClosedCycles = (
+  transactions: PortfolioTransaction[],
+): ClosedCycle[] => {
+  const positions = new Map<string, Position>();
+
+  for (const tx of sortChronologically(transactions)) {
+    applyTransaction(positionFor(positions, tx), tx);
+  }
+
+  return Array.from(positions.entries()).flatMap(([ticker, position]) =>
+    position.closedCycles.map((cycle) => ({
+      ticker,
+      type: position.type,
+      ...cycle,
+    })),
   );
 };
 

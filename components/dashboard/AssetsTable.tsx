@@ -10,7 +10,7 @@ interface AssetsTableProps {
   onDelete: (asset: Asset) => void;
 }
 
-type SortKey = "name" | "balance" | "value" | "change" | "realizedPnl";
+type SortKey = "name" | "balance" | "value" | "change" | "unrealizedPnl";
 type SortDirection = "asc" | "desc";
 
 export function AssetsTable({ assets, onAdd, onEdit, onDelete }: AssetsTableProps) {
@@ -138,12 +138,12 @@ export function AssetsTable({ assets, onAdd, onEdit, onDelete }: AssetsTableProp
               <th className="px-6 py-4 text-right">
                 <button
                   type="button"
-                  onClick={() => handleSort("realizedPnl")}
+                  onClick={() => handleSort("unrealizedPnl")}
                   className="flex items-center gap-1 ml-auto cursor-pointer hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded"
                 >
-                  Realized P&L
+                  Unrealized P&L
                   <span className="material-symbols-outlined text-sm leading-none">
-                    {sortIcon("realizedPnl")}
+                    {sortIcon("unrealizedPnl")}
                   </span>
                 </button>
               </th>
@@ -199,15 +199,15 @@ export function AssetsTable({ assets, onAdd, onEdit, onDelete }: AssetsTableProp
                 </td>
                 <td
                   className={`px-6 py-4 text-right text-sm font-bold ${
-                    asset.realizedPnl > 0
+                    asset.unrealizedPnl > 0
                       ? "text-success"
-                      : asset.realizedPnl < 0
+                      : asset.unrealizedPnl < 0
                         ? "text-danger"
                         : "text-slate-500 dark:text-slate-400"
                   }`}
                 >
-                  {asset.realizedPnl > 0 ? "+" : asset.realizedPnl < 0 ? "-" : ""}$
-                  {Math.abs(asset.realizedPnl).toLocaleString("en-US", {
+                  {asset.unrealizedPnl > 0 ? "+" : asset.unrealizedPnl < 0 ? "-" : ""}$
+                  {Math.abs(asset.unrealizedPnl).toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}

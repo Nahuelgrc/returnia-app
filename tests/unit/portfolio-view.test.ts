@@ -7,8 +7,8 @@ import {
 } from "@/lib/portfolio-view";
 import type { Holding, Quote } from "@/lib/types";
 
-const btc: Holding = { ticker: "BTC", type: "crypto", balance: "2", averageCost: 100, realizedPnl: 0 };
-const aapl: Holding = { ticker: "AAPL", type: "stock", balance: "10", averageCost: 50, realizedPnl: 0 };
+const btc: Holding = { ticker: "BTC", type: "crypto", balance: "2", averageCost: 100 };
+const aapl: Holding = { ticker: "AAPL", type: "stock", balance: "10", averageCost: 50 };
 
 const quotes: Quote[] = [
   { symbol: "BINANCE:BTCUSDT", price: 150 },
@@ -28,13 +28,13 @@ describe("getProviderSymbols", () => {
 describe("buildAssets", () => {
   it("computes price, value and change", () => {
     const [a, b] = buildAssets([btc, aapl], quotes);
-    expect(a).toMatchObject({ name: "BTC", price: 150, value: 300, change: 50 });
-    expect(b).toMatchObject({ price: 40, value: 400, change: -20 });
+    expect(a).toMatchObject({ name: "BTC", price: 150, value: 300, change: 50, unrealizedPnl: 100 });
+    expect(b).toMatchObject({ price: 40, value: 400, change: -20, unrealizedPnl: -100 });
   });
 
   it("uses price 0 and change 0 without a quote", () => {
     const [a] = buildAssets([btc], []);
-    expect(a).toMatchObject({ price: 0, value: 0, change: 0 });
+    expect(a).toMatchObject({ price: 0, value: 0, change: 0, unrealizedPnl: 0 });
   });
 
   it("quote without price counts as 0", () => {

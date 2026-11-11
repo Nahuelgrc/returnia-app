@@ -22,6 +22,10 @@ export const buildAssets = (holdings: Holding[], quotes: Quote[]): Asset[] => {
         holding.averageCost > 0 && price > 0
           ? ((price - holding.averageCost) / holding.averageCost) * 100
           : 0,
+      unrealizedPnl:
+        price > 0
+          ? (price - holding.averageCost) * parseFloat(holding.balance)
+          : 0,
     };
   });
 };

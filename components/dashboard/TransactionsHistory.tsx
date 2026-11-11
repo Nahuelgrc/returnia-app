@@ -16,7 +16,7 @@ export function TransactionsHistory({
   onImport,
 }: TransactionsHistoryProps) {
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-4 flex-1 min-h-0">
       <div className="flex justify-end gap-3">
         <button
           onClick={onImport}
@@ -36,14 +36,14 @@ export function TransactionsHistory({
       </div>
       <div
         data-testid="transactions-history"
-        className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden"
+        className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden flex flex-col flex-1 min-h-0"
       >
         {transactions.length === 0 ? (
           <p className="px-6 py-8 text-sm text-slate-500 dark:text-slate-400 text-center">
             No transactions yet.
           </p>
         ) : (
-          <div className="max-h-[480px] overflow-y-auto custom-scrollbar">
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
             <table className="w-full text-left">
               <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 sticky top-0">
                 <tr>

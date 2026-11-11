@@ -8,7 +8,7 @@ const asset: Asset = {
   type: "crypto",
   balance: "2",
   averageCost: 1234.5,
-  realizedPnl: 0,
+  unrealizedPnl: 0,
   name: "BTC",
   price: 2000,
   value: 4000,
@@ -40,13 +40,13 @@ describe("AssetsTable", () => {
     expect(within(table).getByText("$12,345.68")).toBeInTheDocument();
   });
 
-  it("shows the realized P&L per asset colored by sign", () => {
+  it("shows the unrealized P&L per asset colored by sign", () => {
     render(
       <AssetsTable
         assets={[
-          { ...asset, realizedPnl: 1500.5 },
-          { ...asset, ticker: "ETH", name: "ETH", realizedPnl: -25 },
-          { ...asset, ticker: "SOL", name: "SOL", realizedPnl: 0 },
+          { ...asset, unrealizedPnl: 1500.5 },
+          { ...asset, ticker: "ETH", name: "ETH", unrealizedPnl: -25 },
+          { ...asset, ticker: "SOL", name: "SOL", unrealizedPnl: 0 },
         ]}
         onAdd={vi.fn()}
         onEdit={vi.fn()}
@@ -54,7 +54,7 @@ describe("AssetsTable", () => {
       />,
     );
     const table = screen.getByTestId("assets-table");
-    expect(within(table).getByText("Realized P&L")).toBeInTheDocument();
+    expect(within(table).getByText("Unrealized P&L")).toBeInTheDocument();
     expect(within(table).getByText("+$1,500.50")).toHaveClass("text-success");
     expect(within(table).getByText("-$25.00")).toHaveClass("text-danger");
     const zero = within(table).getByText("$0.00");
@@ -62,13 +62,13 @@ describe("AssetsTable", () => {
     expect(zero).not.toHaveClass("text-success");
   });
 
-  it("sorts by realized P&L asc then desc", () => {
+  it("sorts by unrealized P&L asc then desc", () => {
     render(
       <AssetsTable
         assets={[
-          { ...asset, ticker: "AAA", name: "AAA", realizedPnl: 10 },
-          { ...asset, ticker: "BBB", name: "BBB", realizedPnl: -5 },
-          { ...asset, ticker: "CCC", name: "CCC", realizedPnl: 100 },
+          { ...asset, ticker: "AAA", name: "AAA", unrealizedPnl: 10 },
+          { ...asset, ticker: "BBB", name: "BBB", unrealizedPnl: -5 },
+          { ...asset, ticker: "CCC", name: "CCC", unrealizedPnl: 100 },
         ]}
         onAdd={vi.fn()}
         onEdit={vi.fn()}
@@ -81,7 +81,7 @@ describe("AssetsTable", () => {
         .getAllByRole("row")
         .slice(1)
         .map((row) => within(row).getByText(/^(AAA|BBB|CCC)$/, { selector: "span.block" }).textContent);
-    const header = within(table).getByRole("button", { name: /Realized P&L/ });
+    const header = within(table).getByRole("button", { name: /Unrealized P&L/ });
 
     fireEvent.click(header);
     expect(order()).toEqual(["BBB", "AAA", "CCC"]);

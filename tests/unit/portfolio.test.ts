@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  computeClosedCycles,
   computeHistory,
   computeHoldings,
   computeRealizedPnl,
@@ -282,5 +283,22 @@ describe("computeRealizedPnl", () => {
         tx("sell", "0.3", "0.2", "2024-01-02T00:00:00Z"),
       ]),
     ).toEqual({ BTC: "0.03" });
+  });
+});
+
+describe("computeClosedCycles", () => {
+  it("lists each closed cycle and ignores the open rebuy", () => {
+    const cycles = computeClosedCycles([
+      tx("buy", 1, 100, "2024-01-01T00:00:00Z"),
+      tx("sell", 1, 150, "2024-01-02T00:00:00Z"),
+      tx("buy", 2, 10, "2024-01-03T00:00:00Z"),
+      tx("sell", 1, 30, "2024-01-04T00:00:00Z"),
+      tx("sell", 1, 20, "2024-01-05T00:00:00Z"),
+      tx("buy", 1, 5, "2024-01-06T00:00:00Z"),
+    ]).map((c) => [c.totalBought.toFixed(), c.totalSold.toFixed(), c.realizedPnl.toFixed()]);
+    expect(cycles).toEqual([
+      ["100", "150", "50"],
+      ["20", "50", "30"],
+    ]);
   });
 });
