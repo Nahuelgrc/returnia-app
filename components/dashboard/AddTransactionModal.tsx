@@ -8,6 +8,7 @@ import type {
   Side,
   TransactionPayload,
 } from "@/lib/schemas/transaction";
+import type { Holding } from "@/lib/types";
 
 interface AddTransactionModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ interface AddTransactionModalProps {
   initialTransaction?: TransactionPayload;
   error?: string | null;
   isEditingAsset?: boolean;
+  holdings?: Holding[];
 }
 
 const currentLocalDateTime = (from = new Date()) => {
@@ -60,6 +62,7 @@ const TransactionForm = ({
   initialTransaction,
   error,
   isEditingAsset,
+  holdings,
   isSubmitting,
   setIsSubmitting,
 }: TransactionFormProps) => {
@@ -92,6 +95,12 @@ const TransactionForm = ({
     assetType,
     initialTransaction ? String(initialTransaction.price) : "",
   );
+
+  const availableBalance =
+    transactionType === "sell" && ticker.trim() !== ""
+      ? (holdings?.find((h) => h.ticker === ticker && h.type === assetType)
+          ?.balance ?? "0")
+      : null;
 
   const quantityNum = Number(quantity);
   const totalSpentNum = Number(totalSpent);
@@ -302,6 +311,23 @@ const TransactionForm = ({
               }}
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary outline-none transition-all"
             />
+            {availableBalance !== null && (
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                <span>Available:</span>
+                {Number(availableBalance) > 0 ? (
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setQuantity(availableBalance)}
+                    className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold hover:bg-primary/20 transition-colors"
+                  >
+                    {availableBalance}
+                  </button>
+                ) : (
+                  <span className="font-bold">0</span>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex-1 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">

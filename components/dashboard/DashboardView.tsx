@@ -233,6 +233,7 @@ export function DashboardView({
             : undefined
         }
         error={transactionError}
+        holdings={holdings}
         isEditingAsset={!!editingAsset || !!editingTransaction}
       />
 
