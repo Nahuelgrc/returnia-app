@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { AssetsTable } from "@/components/dashboard/AssetsTable";
 import type { Asset } from "@/lib/types";
 
@@ -26,12 +26,27 @@ describe("AssetsTable", () => {
     expect(within(table).getByText("$2,000")).toBeInTheDocument();
   });
 
+  it("limits the entry price to 2 decimals keeping thousands separator", () => {
+    render(
+      <AssetsTable
+        assets={[{ ...asset, averageCost: 623.052 }, { ...asset, ticker: "ETH", name: "ETH", averageCost: 12345.678 }]}
+        onAdd={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+    const table = screen.getByTestId("assets-table");
+    expect(within(table).getByText("$623.05")).toBeInTheDocument();
+    expect(within(table).getByText("$12,345.68")).toBeInTheDocument();
+  });
+
   it("shows the realized P&L per asset colored by sign", () => {
     render(
       <AssetsTable
         assets={[
           { ...asset, realizedPnl: 1500.5 },
           { ...asset, ticker: "ETH", name: "ETH", realizedPnl: -25 },
+          { ...asset, ticker: "SOL", name: "SOL", realizedPnl: 0 },
         ]}
         onAdd={vi.fn()}
         onEdit={vi.fn()}
@@ -42,5 +57,35 @@ describe("AssetsTable", () => {
     expect(within(table).getByText("Realized P&L")).toBeInTheDocument();
     expect(within(table).getByText("+$1,500.50")).toHaveClass("text-success");
     expect(within(table).getByText("-$25.00")).toHaveClass("text-danger");
+    const zero = within(table).getByText("$0.00");
+    expect(zero).toHaveClass("text-slate-500");
+    expect(zero).not.toHaveClass("text-success");
+  });
+
+  it("sorts by realized P&L asc then desc", () => {
+    render(
+      <AssetsTable
+        assets={[
+          { ...asset, ticker: "AAA", name: "AAA", realizedPnl: 10 },
+          { ...asset, ticker: "BBB", name: "BBB", realizedPnl: -5 },
+          { ...asset, ticker: "CCC", name: "CCC", realizedPnl: 100 },
+        ]}
+        onAdd={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+    const table = screen.getByTestId("assets-table");
+    const order = () =>
+      within(table)
+        .getAllByRole("row")
+        .slice(1)
+        .map((row) => within(row).getByText(/^(AAA|BBB|CCC)$/, { selector: "span.block" }).textContent);
+    const header = within(table).getByRole("button", { name: /Realized P&L/ });
+
+    fireEvent.click(header);
+    expect(order()).toEqual(["BBB", "AAA", "CCC"]);
+    fireEvent.click(header);
+    expect(order()).toEqual(["CCC", "AAA", "BBB"]);
   });
 });

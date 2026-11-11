@@ -54,7 +54,11 @@ export function HeroBalance({
         <div
           data-testid="realized-pnl"
           className={`flex items-center gap-1 text-2xl font-extrabold tracking-tight ${
-            realizedPnl >= 0 ? "text-success" : "text-danger"
+            realizedPnl > 0
+              ? "text-success"
+              : realizedPnl < 0
+                ? "text-danger"
+                : "text-slate-500 dark:text-[#9da6b9]"
           }`}
         >
           {realizedPnl > 0 ? "+" : realizedPnl < 0 ? "-" : ""}$

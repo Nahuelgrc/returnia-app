@@ -16,9 +16,10 @@ describe("HeroBalance", () => {
     expect(screen.getByTestId("realized-pnl")).toHaveClass("text-danger");
   });
 
-  it("shows zero without sign", () => {
+  it("shows zero without sign in gray", () => {
     render(<HeroBalance total={0} invested={0} realizedPnl={0} />);
     expect(screen.getByTestId("realized-pnl")).toHaveTextContent("$0.00");
-    expect(screen.getByTestId("realized-pnl")).toHaveClass("text-success");
+    expect(screen.getByTestId("realized-pnl")).toHaveClass("text-slate-500");
+    expect(screen.getByTestId("realized-pnl")).not.toHaveClass("text-success");
   });
 });
