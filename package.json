@@ -56,5 +56,8 @@
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.2"
   }
 }
