@@ -47,7 +47,7 @@
     "@vitest/coverage-v8": "^5.0.4",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.4.6",
-    "jsdom": "^29.1.1",
+    "jsdom": "^31.0.0",
     "prisma": "^6.19.3",
     "tailwindcss": "^4.3.5",
     "ts-node": "^10.9.2",
