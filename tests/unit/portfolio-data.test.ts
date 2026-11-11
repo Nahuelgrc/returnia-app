@@ -36,6 +36,9 @@ describe("getPortfolioData", () => {
     expect(data.holdings.map((h) => h.ticker)).toEqual(["BTC"]);
     expect(data.holdings[0].realizedPnl).toBe(0);
     expect(data.realizedPnl).toBe(50);
+    expect(data.closedPositions).toEqual([
+      { ticker: "ETH", type: "crypto", totalBought: 100, totalSold: 150, realizedPnl: 50 },
+    ]);
   });
 
   it("queries only the user transactions", async () => {
@@ -48,6 +51,7 @@ describe("getPortfolioData", () => {
     mocks.findMany.mockResolvedValue([]);
     expect(await getPortfolioData("u")).toEqual({
       holdings: [],
+      closedPositions: [],
       history: [],
       transactions: [],
       realizedPnl: 0,

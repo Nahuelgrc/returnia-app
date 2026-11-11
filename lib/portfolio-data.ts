@@ -5,10 +5,16 @@ import {
   computeHoldings,
   computeRealizedPnl,
 } from "@/lib/portfolio";
-import type { Holding, HistoryPoint, TransactionRecord } from "@/lib/types";
+import type {
+  ClosedPosition,
+  Holding,
+  HistoryPoint,
+  TransactionRecord,
+} from "@/lib/types";
 
 export async function getPortfolioData(userId: string): Promise<{
   holdings: Holding[];
+  closedPositions: ClosedPosition[];
   history: HistoryPoint[];
   transactions: TransactionRecord[];
   realizedPnl: number;
@@ -44,6 +50,35 @@ export async function getPortfolioData(userId: string): Promise<{
       .toNumber(),
   }));
 
+  const heldTickers = new Set(holdings.map((h) => h.ticker));
+  const closedByTicker = new Map<
+    string,
+    { type: ClosedPosition["type"]; bought: Prisma.Decimal; sold: Prisma.Decimal }
+  >();
+  for (const t of rawTransactions) {
+    if (heldTickers.has(t.tickerName)) continue;
+    const entry = closedByTicker.get(t.tickerName) ?? {
+      type: t.assetType,
+      bought: new Prisma.Decimal(0),
+      sold: new Prisma.Decimal(0),
+    };
+    const amount = new Prisma.Decimal(t.quantity).times(t.price);
+    if (t.side === "buy") entry.bought = entry.bought.plus(amount);
+    else entry.sold = entry.sold.plus(amount);
+    closedByTicker.set(t.tickerName, entry);
+  }
+  const closedPositions = Array.from(closedByTicker.entries())
+    .map(([ticker, entry]) => ({
+      ticker,
+      type: entry.type,
+      totalBought: entry.bought.toDecimalPlaces(2).toNumber(),
+      totalSold: entry.sold.toDecimalPlaces(2).toNumber(),
+      realizedPnl: (realizedByTicker.get(ticker) ?? new Prisma.Decimal(0))
+        .toDecimalPlaces(2)
+        .toNumber(),
+    }))
+    .sort((a, b) => b.realizedPnl - a.realizedPnl);
+
   const history = computeHistory(rawTransactions).map((entry) => ({
     date: entry.date,
     value: entry.invested.toDecimalPlaces(2).toNumber(),
@@ -62,6 +97,7 @@ export async function getPortfolioData(userId: string): Promise<{
 
   return {
     holdings,
+    closedPositions,
     history,
     transactions,
     realizedPnl: totalRealized.toDecimalPlaces(2).toNumber(),

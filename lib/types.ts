@@ -15,6 +15,14 @@ export interface Asset extends Holding {
   change: number;
 }
 
+export interface ClosedPosition {
+  ticker: string;
+  type: AssetType;
+  totalBought: number;
+  totalSold: number;
+  realizedPnl: number;
+}
+
 export interface HistoryPoint {
   date: string;
   value: number;

@@ -8,6 +8,7 @@ import { AllocationChart } from "@/components/dashboard/AllocationChart";
 import { Header } from "@/components/dashboard/Header";
 import { HeroBalance } from "@/components/dashboard/HeroBalance";
 import { AssetsTable } from "@/components/dashboard/AssetsTable";
+import { ClosedPositionsTable } from "@/components/dashboard/ClosedPositionsTable";
 import { Sidebar, type DashboardViewKey } from "@/components/dashboard/Sidebar";
 import { TransactionsHistory } from "@/components/dashboard/TransactionsHistory";
 import { AddTransactionModal } from "@/components/dashboard/AddTransactionModal";
@@ -24,11 +25,18 @@ import { usePortfolioPrices } from "@/hooks/usePortfolioPrices";
 import { PERIODS, filterHistoryByPeriod, type Period } from "@/lib/chart";
 import { buildAssets, totalInvested, totalValue } from "@/lib/portfolio-view";
 import type { TransactionPayload } from "@/lib/schemas/transaction";
-import type { Asset, HistoryPoint, Holding, TransactionRecord } from "@/lib/types";
+import type {
+  Asset,
+  ClosedPosition,
+  HistoryPoint,
+  Holding,
+  TransactionRecord,
+} from "@/lib/types";
 
 interface DashboardViewProps {
   user?: User;
   holdings: Holding[];
+  closedPositions: ClosedPosition[];
   history: HistoryPoint[];
   transactions: TransactionRecord[];
   realizedPnl: number;
@@ -37,6 +45,7 @@ interface DashboardViewProps {
 export function DashboardView({
   user,
   holdings,
+  closedPositions,
   history,
   transactions,
   realizedPnl,
@@ -195,6 +204,8 @@ export function DashboardView({
           }}
           onDelete={setDeleteTarget}
         />
+
+        <ClosedPositionsTable positions={closedPositions} />
 
         </>
         ) : (
