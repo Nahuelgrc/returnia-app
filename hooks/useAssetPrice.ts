@@ -3,12 +3,17 @@ import type { AssetType } from "@/lib/schemas/transaction";
 import type { Quote } from "@/lib/types";
 import { toProviderSymbol } from "@/lib/symbols";
 
-export function useAssetPrice(ticker: string, assetType: AssetType) {
-  const [price, setPrice] = useState("");
+export function useAssetPrice(
+  ticker: string,
+  assetType: AssetType,
+  initialPrice = "",
+) {
+  const [price, setPrice] = useState(initialPrice);
   const [settledKey, setSettledKey] = useState("");
 
-  const active = ticker.trim() !== "";
   const key = `${assetType}:${ticker.trim()}`;
+  const [skippedKey] = useState(() => (initialPrice ? key : null));
+  const active = ticker.trim() !== "" && key !== skippedKey;
 
   useEffect(() => {
     if (!active) return;

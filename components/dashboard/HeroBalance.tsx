@@ -1,9 +1,11 @@
 export function HeroBalance({
   total,
   invested,
+  realizedPnl,
 }: {
   total: number;
   invested: number;
+  realizedPnl: number;
 }) {
   const gain = total - invested;
   const gainPercent = invested > 0 ? (gain / invested) * 100 : 0;
@@ -43,6 +45,23 @@ export function HeroBalance({
           })}{" "}
           ({gainPercent > 0 ? "+" : ""}
           {gainPercent.toFixed(2)}%)
+        </div>
+      </div>
+      <div className="flex flex-col gap-1">
+        <p className="text-slate-500 dark:text-[#9da6b9] font-medium">
+          Realized P&L
+        </p>
+        <div
+          data-testid="realized-pnl"
+          className={`flex items-center gap-1 text-2xl font-extrabold tracking-tight ${
+            realizedPnl >= 0 ? "text-success" : "text-danger"
+          }`}
+        >
+          {realizedPnl > 0 ? "+" : realizedPnl < 0 ? "-" : ""}$
+          {Math.abs(realizedPnl).toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
         </div>
       </div>
     </section>

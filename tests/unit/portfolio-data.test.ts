@@ -26,6 +26,18 @@ const row = (
 });
 
 describe("getPortfolioData", () => {
+  it("includes fully sold tickers in the realized total", async () => {
+    mocks.findMany.mockResolvedValue([
+      { ...row("buy", "1", "100", "2024-01-01T00:00:00Z", "a"), tickerName: "ETH" },
+      { ...row("sell", "1", "150", "2024-01-02T00:00:00Z", "b"), tickerName: "ETH" },
+      row("buy", "1", "100", "2024-01-01T00:00:00Z", "c"),
+    ]);
+    const data = await getPortfolioData("u");
+    expect(data.holdings.map((h) => h.ticker)).toEqual(["BTC"]);
+    expect(data.holdings[0].realizedPnl).toBe(0);
+    expect(data.realizedPnl).toBe(50);
+  });
+
   it("queries only the user transactions", async () => {
     mocks.findMany.mockResolvedValue([]);
     await getPortfolioData("user-9");
@@ -38,6 +50,7 @@ describe("getPortfolioData", () => {
       holdings: [],
       history: [],
       transactions: [],
+      realizedPnl: 0,
     });
   });
 
@@ -48,8 +61,15 @@ describe("getPortfolioData", () => {
     ]);
     const data = await getPortfolioData("u");
     expect(data.holdings).toEqual([
-      { ticker: "BTC", type: "crypto", balance: "1", averageCost: 100.123 },
+      {
+        ticker: "BTC",
+        type: "crypto",
+        balance: "1",
+        averageCost: 100.123,
+        realizedPnl: 399.88,
+      },
     ]);
+    expect(data.realizedPnl).toBe(399.88);
     expect(data.history).toEqual([
       { date: "2024-01-01", value: 200.25 },
       { date: "2024-01-02", value: 100.12 },

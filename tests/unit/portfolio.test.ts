@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   computeHistory,
   computeHoldings,
+  computeRealizedPnl,
   type PortfolioTransaction,
 } from "@/lib/portfolio";
 
@@ -47,6 +48,16 @@ describe("computeHoldings", () => {
     expect(h.balance.toFixed()).toBe("3");
     expect(h.averageCost.toFixed()).toBe("150");
     expect(h.totalInvested.toFixed()).toBe("450");
+  });
+
+  it("average cost after buy, sell and buy weights only the remaining units", () => {
+    const [h] = computeHoldings([
+      tx("buy", 2, 100, "2024-01-01T00:00:00Z"),
+      tx("sell", 1, 500, "2024-01-02T00:00:00Z"),
+      tx("buy", 1, 200, "2024-01-03T00:00:00Z"),
+    ]);
+    expect(h.balance.toFixed()).toBe("2");
+    expect(h.averageCost.toFixed()).toBe("150");
   });
 
   it("a full sell removes the position", () => {
@@ -174,5 +185,102 @@ describe("computeHistory", () => {
       tx("buy", 2, 50, "2024-01-02T10:00:00Z", "AAPL", "stock"),
     ]);
     expect(history[1].invested.toFixed()).toBe("200");
+  });
+});
+
+describe("computeRealizedPnl", () => {
+  const pnl = (txs: PortfolioTransaction[]) =>
+    Object.fromEntries(
+      Array.from(computeRealizedPnl(txs).entries()).map(([k, v]) => [k, v.toFixed()]),
+    );
+
+  it("is empty without transactions", () => {
+    expect(pnl([])).toEqual({});
+  });
+
+  it("is 0 with only buys", () => {
+    expect(
+      pnl([
+        tx("buy", 1, 100, "2024-01-01T00:00:00Z"),
+        tx("buy", 1, 200, "2024-01-02T00:00:00Z"),
+      ]),
+    ).toEqual({ BTC: "0" });
+  });
+
+  it("sell with a gain", () => {
+    expect(
+      pnl([
+        tx("buy", 2, 100, "2024-01-01T00:00:00Z"),
+        tx("sell", 1, 150, "2024-01-02T00:00:00Z"),
+      ]),
+    ).toEqual({ BTC: "50" });
+  });
+
+  it("sell with a loss", () => {
+    expect(
+      pnl([
+        tx("buy", 2, 100, "2024-01-01T00:00:00Z"),
+        tx("sell", 2, 70, "2024-01-02T00:00:00Z"),
+      ]),
+    ).toEqual({ BTC: "-60" });
+  });
+
+  it("several partial sells use the weighted average cost", () => {
+    expect(
+      pnl([
+        tx("buy", 2, 100, "2024-01-01T00:00:00Z"),
+        tx("buy", 2, 200, "2024-01-02T00:00:00Z"),
+        tx("sell", 1, 200, "2024-01-03T00:00:00Z"),
+        tx("sell", 1, 100, "2024-01-04T00:00:00Z"),
+      ]),
+    ).toEqual({ BTC: "0" });
+    expect(
+      pnl([
+        tx("buy", 2, 100, "2024-01-01T00:00:00Z"),
+        tx("buy", 2, 200, "2024-01-02T00:00:00Z"),
+        tx("sell", 1, 200, "2024-01-03T00:00:00Z"),
+        tx("sell", 2, 250, "2024-01-04T00:00:00Z"),
+      ]),
+    ).toEqual({ BTC: "250" });
+  });
+
+  it("full sell then rebuy restarts the cost", () => {
+    expect(
+      pnl([
+        tx("buy", 1, 100, "2024-01-01T00:00:00Z"),
+        tx("sell", 1, 200, "2024-01-02T00:00:00Z"),
+        tx("buy", 1, 10, "2024-01-03T00:00:00Z"),
+        tx("sell", 1, 30, "2024-01-04T00:00:00Z"),
+      ]),
+    ).toEqual({ BTC: "120" });
+  });
+
+  it("sums per ticker and keeps fully sold tickers", () => {
+    expect(
+      pnl([
+        tx("buy", 1, 100, "2024-01-01T00:00:00Z", "BTC", "crypto"),
+        tx("sell", 1, 150, "2024-01-02T00:00:00Z", "BTC", "crypto"),
+        tx("buy", 10, 5, "2024-01-01T00:00:00Z", "AAPL", "stock"),
+        tx("sell", 4, 4, "2024-01-02T00:00:00Z", "AAPL", "stock"),
+      ]),
+    ).toEqual({ BTC: "50", AAPL: "-4" });
+  });
+
+  it("same instant applies the buy before the sell", () => {
+    expect(
+      pnl([
+        tx("sell", 1, 150, "2024-01-01T00:00:00Z"),
+        tx("buy", 1, 100, "2024-01-01T00:00:00Z"),
+      ]),
+    ).toEqual({ BTC: "50" });
+  });
+
+  it("does not lose precision with decimals", () => {
+    expect(
+      pnl([
+        tx("buy", "0.3", "0.1", "2024-01-01T00:00:00Z"),
+        tx("sell", "0.3", "0.2", "2024-01-02T00:00:00Z"),
+      ]),
+    ).toEqual({ BTC: "0.03" });
   });
 });

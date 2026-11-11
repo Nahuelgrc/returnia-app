@@ -30,6 +30,7 @@ interface Position {
   type: AssetType;
   balance: Decimal;
   totalInvested: Decimal;
+  realizedPnl: Decimal;
 }
 
 const sortChronologically = (transactions: PortfolioTransaction[]) =>
@@ -50,6 +51,7 @@ const positionFor = (
       type: tx.assetType,
       balance: new Decimal(0),
       totalInvested: new Decimal(0),
+      realizedPnl: new Decimal(0),
     };
     positions.set(tx.tickerName, position);
   }
@@ -67,6 +69,10 @@ const applyTransaction = (position: Position, tx: PortfolioTransaction) => {
   }
   if (position.balance.lte(0)) return;
   const averageCost = position.totalInvested.div(position.balance);
+  const soldQuantity = Decimal.min(quantity, position.balance);
+  position.realizedPnl = position.realizedPnl.plus(
+    soldQuantity.times(new Decimal(tx.price).minus(averageCost)),
+  );
   position.balance = position.balance.minus(quantity);
   position.totalInvested = position.totalInvested.minus(
     quantity.times(averageCost),
@@ -95,6 +101,23 @@ export const computeHoldings = (
       totalInvested: position.totalInvested,
       averageCost: position.totalInvested.div(position.balance),
     }));
+};
+
+export const computeRealizedPnl = (
+  transactions: PortfolioTransaction[],
+): Map<string, Decimal> => {
+  const positions = new Map<string, Position>();
+
+  for (const tx of sortChronologically(transactions)) {
+    applyTransaction(positionFor(positions, tx), tx);
+  }
+
+  return new Map(
+    Array.from(positions.entries()).map(([ticker, position]) => [
+      ticker,
+      position.realizedPnl,
+    ]),
+  );
 };
 
 export const computeHistory = (

@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   findMany: vi.fn(),
   create: vi.fn(),
+  findFirst: vi.fn(),
+  update: vi.fn(),
   deleteMany: vi.fn(),
   $transaction: vi.fn(),
 }));
@@ -19,7 +21,22 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-import { addTransaction, deleteAssetTransactions } from "@/app/actions/transaction";
+import {
+  addTransaction,
+  deleteAssetTransactions,
+  deleteTransaction,
+  updateTransaction,
+} from "@/app/actions/transaction";
+
+const txClient = () => ({
+  transaction: {
+    findMany: mocks.findMany,
+    create: mocks.create,
+    findFirst: mocks.findFirst,
+    update: mocks.update,
+    deleteMany: mocks.deleteMany,
+  },
+});
 
 const payload = {
   type: "buy" as const,
@@ -50,9 +67,14 @@ beforeEach(() => {
     quantity: new Prisma.Decimal(data.quantity),
     price: new Prisma.Decimal(data.price),
   }));
-  mocks.$transaction.mockImplementation(async (fn) =>
-    fn({ transaction: { findMany: mocks.findMany, create: mocks.create } }),
-  );
+  mocks.$transaction.mockImplementation(async (fn) => fn(txClient()));
+  mocks.findFirst.mockResolvedValue({ tickerName: "BTC" });
+  mocks.update.mockImplementation(async ({ data }) => ({
+    id: "tx-1",
+    ...data,
+    quantity: new Prisma.Decimal(data.quantity),
+    price: new Prisma.Decimal(data.price),
+  }));
   mocks.deleteMany.mockResolvedValue({ count: 1 });
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -245,6 +267,164 @@ describe("addTransaction", () => {
     mocks.$transaction.mockRejectedValue(knownError("P2002"));
     await addTransaction(payload);
     expect(mocks.$transaction).toHaveBeenCalledTimes(1);
+  });
+});
+
+const withId = (side: "buy" | "sell", quantity: number, at: string, tickerName = "BTC") => ({
+  tickerName,
+  ...existing(side, quantity, at),
+});
+
+describe("updateTransaction", () => {
+  it("rejects without a session", async () => {
+    mocks.auth.mockResolvedValue(null);
+    expect(await updateTransaction("tx-1", payload)).toEqual({ error: "Unauthorized" });
+    expect(mocks.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid data without touching the database", async () => {
+    const result = await updateTransaction("tx-1", { ...payload, quantity: -1 });
+    expect(result.error).toBeTruthy();
+    expect(await updateTransaction("", payload)).toEqual({ error: "Invalid transaction" });
+    expect(mocks.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects a transaction that does not belong to the user", async () => {
+    mocks.findFirst.mockResolvedValue(null);
+    const result = await updateTransaction("tx-9", payload);
+    expect(result).toEqual({ error: "Transaction not found" });
+    expect(mocks.findFirst.mock.calls[0][0].where).toEqual({ id: "tx-9", userId: "user-1" });
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("updates with the session userId and revalidates", async () => {
+    mocks.findMany.mockResolvedValue([]);
+    const result = await updateTransaction("tx-1", payload);
+    expect(mocks.update).toHaveBeenCalledWith({
+      where: { id: "tx-1", userId: "user-1" },
+      data: {
+        assetType: "crypto",
+        tickerName: "BTC",
+        side: "buy",
+        quantity: 2,
+        price: 100,
+        executedAt: new Date("2024-01-10T00:00:00Z"),
+        comments: null,
+      },
+    });
+    expect(result).toMatchObject({
+      success: true,
+      transaction: { id: "tx-1", quantity: 2, price: 100 },
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("excludes the edited transaction from the timeline query", async () => {
+    await updateTransaction("tx-1", payload);
+    expect(mocks.findMany.mock.calls[0][0].where).toEqual({
+      userId: "user-1",
+      tickerName: { in: ["BTC"] },
+      NOT: { id: "tx-1" },
+    });
+  });
+
+  it("rejects reducing a buy below a later sell", async () => {
+    mocks.findMany.mockResolvedValue([withId("sell", 5, "2024-01-20T00:00:00Z")]);
+    const result = await updateTransaction("tx-1", { ...payload, quantity: 3 });
+    expect(result.error).toContain("balance negative");
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it("accepts reducing a buy that still covers later sells", async () => {
+    mocks.findMany.mockResolvedValue([withId("sell", 2, "2024-01-20T00:00:00Z")]);
+    const result = await updateTransaction("tx-1", { ...payload, quantity: 3 });
+    expect(result).toMatchObject({ success: true });
+  });
+
+  it("rejects moving a buy after a sell", async () => {
+    mocks.findMany.mockResolvedValue([withId("sell", 1, "2024-01-05T00:00:00Z")]);
+    const result = await updateTransaction("tx-1", payload);
+    expect(result.error).toContain("balance negative");
+  });
+
+  it("rejects changing the ticker when the old one would go negative", async () => {
+    mocks.findMany.mockResolvedValue([withId("sell", 1, "2024-01-20T00:00:00Z")]);
+    const result = await updateTransaction("tx-1", { ...payload, ticker: "eth" });
+    expect(result.error).toContain("BTC balance negative");
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects turning a buy into a sell without balance", async () => {
+    const result = await updateTransaction("tx-1", { ...payload, type: "sell" });
+    expect(result.error).toContain("balance negative");
+  });
+
+  it("uses Serializable isolation and retries on P2034", async () => {
+    mocks.$transaction
+      .mockRejectedValueOnce(knownError("P2034"))
+      .mockImplementationOnce(async (fn) => fn(txClient()));
+    const result = await updateTransaction("tx-1", payload);
+    expect(result).toMatchObject({ success: true });
+    expect(mocks.$transaction).toHaveBeenCalledTimes(2);
+    expect(mocks.$transaction.mock.calls[0][1]).toEqual({
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    });
+  });
+
+  it("returns a generic error if the database fails", async () => {
+    mocks.$transaction.mockRejectedValue(new Error("connection string leaked"));
+    expect(await updateTransaction("tx-1", payload)).toEqual({
+      error: "Error saving the transaction",
+    });
+  });
+});
+
+describe("deleteTransaction", () => {
+  it("rejects without a session", async () => {
+    mocks.auth.mockResolvedValue(null);
+    expect(await deleteTransaction("tx-1")).toEqual({ error: "Unauthorized" });
+    expect(mocks.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid id", async () => {
+    expect(await deleteTransaction("")).toEqual({ error: "Invalid transaction" });
+    expect(mocks.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects a transaction that does not belong to the user", async () => {
+    mocks.findFirst.mockResolvedValue(null);
+    expect(await deleteTransaction("tx-9")).toEqual({ error: "Transaction not found" });
+    expect(mocks.findFirst.mock.calls[0][0].where).toEqual({ id: "tx-9", userId: "user-1" });
+    expect(mocks.deleteMany).not.toHaveBeenCalled();
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("rejects deleting a buy that covers a later sell", async () => {
+    mocks.findMany.mockResolvedValue([withId("sell", 1, "2024-01-20T00:00:00Z")]);
+    const result = await deleteTransaction("tx-1");
+    expect(result.error).toContain("BTC balance negative");
+    expect(mocks.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("deletes only the user transaction and revalidates", async () => {
+    mocks.findMany.mockResolvedValue([
+      withId("buy", 5, "2024-01-01T00:00:00Z"),
+      withId("sell", 2, "2024-01-20T00:00:00Z"),
+    ]);
+    const result = await deleteTransaction("tx-1");
+    expect(result).toEqual({ success: true });
+    expect(mocks.deleteMany).toHaveBeenCalledWith({
+      where: { id: "tx-1", userId: "user-1" },
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("returns a generic error if the database fails", async () => {
+    mocks.$transaction.mockRejectedValue(new Error("connection string leaked"));
+    expect(await deleteTransaction("tx-1")).toEqual({
+      error: "Error deleting the transaction",
+    });
   });
 });
 

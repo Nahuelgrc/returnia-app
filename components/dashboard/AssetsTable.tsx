@@ -98,6 +98,7 @@ export function AssetsTable({ assets, onAdd, onEdit, onDelete }: AssetsTableProp
                 </button>
               </th>
               <th className="px-6 py-4">Price</th>
+              <th className="px-6 py-4">Entry Price</th>
               <th className="px-6 py-4">
                 <button
                   type="button"
@@ -134,6 +135,7 @@ export function AssetsTable({ assets, onAdd, onEdit, onDelete }: AssetsTableProp
                   </span>
                 </button>
               </th>
+              <th className="px-6 py-4 text-right">Realized P&L</th>
               <th className="px-6 py-4 text-center">Actions</th>
             </tr>
           </thead>
@@ -160,6 +162,9 @@ export function AssetsTable({ assets, onAdd, onEdit, onDelete }: AssetsTableProp
                   ${asset.price.toLocaleString("en-US")}
                 </td>
                 <td className="px-6 py-4 text-sm font-medium">
+                  ${asset.averageCost.toLocaleString("en-US")}
+                </td>
+                <td className="px-6 py-4 text-sm font-medium">
                   {parseFloat(asset.balance).toLocaleString("en-US", {
                     maximumFractionDigits: 2,
                   })}{" "}
@@ -180,6 +185,17 @@ export function AssetsTable({ assets, onAdd, onEdit, onDelete }: AssetsTableProp
                     {asset.change > 0 ? "+" : ""}
                     {asset.change.toFixed(2)}%
                   </div>
+                </td>
+                <td
+                  className={`px-6 py-4 text-right text-sm font-bold ${
+                    asset.realizedPnl >= 0 ? "text-success" : "text-danger"
+                  }`}
+                >
+                  {asset.realizedPnl > 0 ? "+" : asset.realizedPnl < 0 ? "-" : ""}$
+                  {Math.abs(asset.realizedPnl).toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </td>
                 <td className="px-6 py-4 text-center">
                   <div className="inline-flex items-center gap-2">

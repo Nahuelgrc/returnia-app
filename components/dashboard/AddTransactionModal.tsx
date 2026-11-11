@@ -16,12 +16,13 @@ interface AddTransactionModalProps {
   initialTicker?: string;
   initialQuantity?: string;
   initialAssetType?: AssetType;
+  initialTransaction?: TransactionPayload;
   error?: string | null;
   isEditingAsset?: boolean;
 }
 
-const currentLocalDateTime = () => {
-  const now = new Date();
+const currentLocalDateTime = (from = new Date()) => {
+  const now = from;
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000)
     .toISOString()
     .slice(0, 16);
@@ -56,17 +57,28 @@ const TransactionForm = ({
   initialTicker,
   initialQuantity,
   initialAssetType,
+  initialTransaction,
   error,
   isEditingAsset,
   isSubmitting,
   setIsSubmitting,
 }: TransactionFormProps) => {
-  const [transactionType, setTransactionType] = useState<Side>("buy");
-  const [assetType, setAssetType] = useState<AssetType>(initialAssetType || "crypto");
-  const [ticker, setTicker] = useState(initialTicker || "");
-  const [quantity, setQuantity] = useState(initialQuantity || "");
-  const [date, setDate] = useState(currentLocalDateTime);
-  const [comments, setComments] = useState("");
+  const [transactionType, setTransactionType] = useState<Side>(
+    initialTransaction?.type ?? "buy",
+  );
+  const [assetType, setAssetType] = useState<AssetType>(
+    initialTransaction?.assetType || initialAssetType || "crypto",
+  );
+  const [ticker, setTicker] = useState(initialTransaction?.ticker ?? initialTicker ?? "");
+  const [quantity, setQuantity] = useState(
+    initialTransaction ? String(initialTransaction.quantity) : initialQuantity || "",
+  );
+  const [date, setDate] = useState(() =>
+    initialTransaction
+      ? currentLocalDateTime(new Date(initialTransaction.date))
+      : currentLocalDateTime(),
+  );
+  const [comments, setComments] = useState(initialTransaction?.comments ?? "");
   const [priceMode, setPriceMode] = useState<"unit" | "total">("unit");
   const [totalSpent, setTotalSpent] = useState("");
 
@@ -75,7 +87,11 @@ const TransactionForm = ({
 
   // Use custom hooks for decoupled logic
   const { searchResults, isSearching } = useAssetSearch(ticker, assetType, showDropdown);
-  const { price, setPrice, isFetchingPrice } = useAssetPrice(ticker, assetType);
+  const { price, setPrice, isFetchingPrice } = useAssetPrice(
+    ticker,
+    assetType,
+    initialTransaction ? String(initialTransaction.price) : "",
+  );
 
   const quantityNum = Number(quantity);
   const totalSpentNum = Number(totalSpent);

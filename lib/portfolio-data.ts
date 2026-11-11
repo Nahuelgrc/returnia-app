@@ -1,11 +1,17 @@
+import { Prisma } from "@prisma/client";
 import { prisma as db } from "@/lib/db";
-import { computeHistory, computeHoldings } from "@/lib/portfolio";
+import {
+  computeHistory,
+  computeHoldings,
+  computeRealizedPnl,
+} from "@/lib/portfolio";
 import type { Holding, HistoryPoint, TransactionRecord } from "@/lib/types";
 
 export async function getPortfolioData(userId: string): Promise<{
   holdings: Holding[];
   history: HistoryPoint[];
   transactions: TransactionRecord[];
+  realizedPnl: number;
 }> {
   const rawTransactions = await db.transaction.findMany({
     where: { userId },
@@ -22,11 +28,20 @@ export async function getPortfolioData(userId: string): Promise<{
     orderBy: { executedAt: "desc" },
   });
 
+  const realizedByTicker = computeRealizedPnl(rawTransactions);
+  let totalRealized = new Prisma.Decimal(0);
+  for (const value of realizedByTicker.values()) {
+    totalRealized = totalRealized.plus(value);
+  }
+
   const holdings = computeHoldings(rawTransactions).map((h) => ({
     ticker: h.ticker,
     type: h.type,
     balance: h.balance.toFixed(),
     averageCost: h.averageCost.toNumber(),
+    realizedPnl: (realizedByTicker.get(h.ticker) ?? new Prisma.Decimal(0))
+      .toDecimalPlaces(2)
+      .toNumber(),
   }));
 
   const history = computeHistory(rawTransactions).map((entry) => ({
@@ -45,5 +60,10 @@ export async function getPortfolioData(userId: string): Promise<{
     executedAt: t.executedAt.toISOString(),
   }));
 
-  return { holdings, history, transactions };
+  return {
+    holdings,
+    history,
+    transactions,
+    realizedPnl: totalRealized.toDecimalPlaces(2).toNumber(),
+  };
 }

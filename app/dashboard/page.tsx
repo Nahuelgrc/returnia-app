@@ -7,9 +7,8 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const { holdings, history, transactions } = await getPortfolioData(
-    session.user.id,
-  );
+  const { holdings, history, transactions, realizedPnl } =
+    await getPortfolioData(session.user.id);
 
   return (
     <DashboardView
@@ -17,6 +16,7 @@ export default async function DashboardPage() {
       holdings={holdings}
       history={history}
       transactions={transactions}
+      realizedPnl={realizedPnl}
     />
   );
 }

@@ -7,8 +7,8 @@ vi.mock("@/hooks/useAssetSearch", () => ({
   useAssetSearch: () => ({ searchResults: [], isSearching: false }),
 }));
 vi.mock("@/hooks/useAssetPrice", () => ({
-  useAssetPrice: () => {
-    const [price, setPrice] = useState("");
+  useAssetPrice: (_ticker: string, _assetType: string, initialPrice = "") => {
+    const [price, setPrice] = useState(initialPrice);
     return { price, setPrice, isFetchingPrice: false };
   },
 }));
@@ -82,6 +82,35 @@ describe("AddTransactionModal", () => {
     setup({ initialTicker: "AAPL", initialQuantity: "10", initialAssetType: "stock" });
     expect(screen.getByPlaceholderText("AAPL")).toHaveValue("AAPL");
     expect(screen.getByPlaceholderText("0.00")).toHaveValue(10);
+  });
+
+  it("prefills and resubmits all values of an edited transaction", async () => {
+    const { onSubmit, user } = setup({
+      isEditingAsset: true,
+      initialTransaction: {
+        type: "sell",
+        assetType: "stock",
+        ticker: "AAPL",
+        quantity: 3,
+        price: 150.5,
+        date: "2024-01-10T12:30:00.000Z",
+        comments: "nota",
+      },
+    });
+    expect(screen.getByPlaceholderText("AAPL")).toHaveValue("AAPL");
+    expect(screen.getByPlaceholderText("0.00")).toHaveValue(3);
+    expect(screen.getByPlaceholderText("$0.00")).toHaveValue(150.5);
+    expect(screen.getByDisplayValue("nota")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSubmit.mock.calls[0][0]).toEqual({
+      type: "sell",
+      assetType: "stock",
+      ticker: "AAPL",
+      quantity: 3,
+      price: 150.5,
+      date: "2024-01-10T12:30:00.000Z",
+      comments: "nota",
+    });
   });
 
   it("Cancel closes the modal", async () => {

@@ -11,10 +11,14 @@ import { AssetsTable } from "@/components/dashboard/AssetsTable";
 import { Sidebar, type DashboardViewKey } from "@/components/dashboard/Sidebar";
 import { TransactionsHistory } from "@/components/dashboard/TransactionsHistory";
 import { AddTransactionModal } from "@/components/dashboard/AddTransactionModal";
+import { ImportTransactionsModal } from "@/components/dashboard/ImportTransactionsModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   addTransaction,
   deleteAssetTransactions,
+  deleteTransaction,
+  importTransactions,
+  updateTransaction,
 } from "@/app/actions/transaction";
 import { usePortfolioPrices } from "@/hooks/usePortfolioPrices";
 import { PERIODS, filterHistoryByPeriod, type Period } from "@/lib/chart";
@@ -27,6 +31,7 @@ interface DashboardViewProps {
   holdings: Holding[];
   history: HistoryPoint[];
   transactions: TransactionRecord[];
+  realizedPnl: number;
 }
 
 export function DashboardView({
@@ -34,15 +39,21 @@ export function DashboardView({
   holdings,
   history,
   transactions,
+  realizedPnl,
 }: DashboardViewProps) {
   const router = useRouter();
   const [view, setView] = React.useState<DashboardViewKey>("dashboard");
   const [timePeriod, setTimePeriod] = React.useState<Period>("ALL");
   const [isAddTransactionOpen, setIsAddTransactionOpen] = React.useState(false);
+  const [isImportOpen, setIsImportOpen] = React.useState(false);
   const [editingAsset, setEditingAsset] = React.useState<Asset | null>(null);
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<Asset | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [editingTransaction, setEditingTransaction] =
+    React.useState<TransactionRecord | null>(null);
+  const [deleteTransactionTarget, setDeleteTransactionTarget] =
+    React.useState<TransactionRecord | null>(null);
   const [transactionError, setTransactionError] = React.useState<string | null>(
     null,
   );
@@ -60,13 +71,16 @@ export function DashboardView({
   const closeModal = () => {
     setIsAddTransactionOpen(false);
     setEditingAsset(null);
+    setEditingTransaction(null);
     setTransactionError(null);
   };
 
   const handleAddTransaction = async (transaction: TransactionPayload) => {
     setTransactionError(null);
     try {
-      const result = await addTransaction(transaction);
+      const result = editingTransaction
+        ? await updateTransaction(editingTransaction.id, transaction)
+        : await addTransaction(transaction);
       if (result.error) {
         setTransactionError(result.error);
         return;
@@ -76,6 +90,12 @@ export function DashboardView({
     } catch {
       setTransactionError("Error saving the transaction");
     }
+  };
+
+  const handleImport = async (content: string) => {
+    const result = await importTransactions(content);
+    if ("success" in result) router.refresh();
+    return result;
   };
 
   const handleConfirmDelete = async () => {
@@ -90,6 +110,20 @@ export function DashboardView({
     }
     setIsDeleting(false);
     setDeleteTarget(null);
+  };
+
+  const handleConfirmDeleteTransaction = async () => {
+    if (!deleteTransactionTarget) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    const result = await deleteTransaction(deleteTransactionTarget.id);
+    if (result.error) {
+      setDeleteError(result.error);
+    } else {
+      router.refresh();
+    }
+    setIsDeleting(false);
+    setDeleteTransactionTarget(null);
   };
 
   return (
@@ -113,7 +147,11 @@ export function DashboardView({
 
         {view === "dashboard" ? (
         <>
-        <HeroBalance total={totalValue(assets)} invested={totalInvested(assets)} />
+        <HeroBalance
+          total={totalValue(assets)}
+          invested={totalInvested(assets)}
+          realizedPnl={realizedPnl}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 flex flex-col gap-4">
@@ -160,7 +198,16 @@ export function DashboardView({
 
         </>
         ) : (
-          <TransactionsHistory transactions={transactions} />
+          <TransactionsHistory
+            transactions={transactions}
+            onEdit={(transaction) => {
+              setTransactionError(null);
+              setEditingTransaction(transaction);
+              setIsAddTransactionOpen(true);
+            }}
+            onDelete={setDeleteTransactionTarget}
+            onImport={() => setIsImportOpen(true)}
+          />
         )}
       </div>
       </div>
@@ -172,8 +219,27 @@ export function DashboardView({
         initialTicker={editingAsset?.ticker}
         initialQuantity={editingAsset?.balance}
         initialAssetType={editingAsset?.type}
+        initialTransaction={
+          editingTransaction
+            ? {
+                type: editingTransaction.side,
+                assetType: editingTransaction.assetType,
+                ticker: editingTransaction.ticker,
+                quantity: editingTransaction.quantity,
+                price: editingTransaction.price,
+                date: editingTransaction.executedAt,
+                comments: editingTransaction.comments ?? undefined,
+              }
+            : undefined
+        }
         error={transactionError}
-        isEditingAsset={!!editingAsset}
+        isEditingAsset={!!editingAsset || !!editingTransaction}
+      />
+
+      <ImportTransactionsModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImport={handleImport}
       />
 
       <ConfirmDialog
@@ -184,6 +250,20 @@ export function DashboardView({
         onConfirm={handleConfirmDelete}
         title="Delete asset"
         message={`Are you sure you want to delete all transactions for ${deleteTarget?.ticker}? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+      />
+
+      <ConfirmDialog
+        isOpen={!!deleteTransactionTarget}
+        onClose={() => {
+          if (!isDeleting) setDeleteTransactionTarget(null);
+        }}
+        onConfirm={handleConfirmDeleteTransaction}
+        title="Delete transaction"
+        message={`Are you sure you want to delete this ${deleteTransactionTarget?.side} of ${deleteTransactionTarget?.quantity} ${deleteTransactionTarget?.ticker}? This action cannot be undone.`}
         confirmLabel="Delete"
         cancelLabel="Cancel"
         variant="danger"

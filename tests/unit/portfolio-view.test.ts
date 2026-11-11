@@ -7,8 +7,8 @@ import {
 } from "@/lib/portfolio-view";
 import type { Holding, Quote } from "@/lib/types";
 
-const btc: Holding = { ticker: "BTC", type: "crypto", balance: "2", averageCost: 100 };
-const aapl: Holding = { ticker: "AAPL", type: "stock", balance: "10", averageCost: 50 };
+const btc: Holding = { ticker: "BTC", type: "crypto", balance: "2", averageCost: 100, realizedPnl: 0 };
+const aapl: Holding = { ticker: "AAPL", type: "stock", balance: "10", averageCost: 50, realizedPnl: 0 };
 
 const quotes: Quote[] = [
   { symbol: "BINANCE:BTCUSDT", price: 150 },

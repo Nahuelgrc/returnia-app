@@ -3,7 +3,7 @@
 **Returnia** is a full-stack portfolio tracker for **Crypto** and **Stocks**, designed to help investors monitor their performance, track P&L (Profit & Loss), and visualize asset distribution in real time.
 
 [![CI](https://github.com/Nahuelgrc/returnia-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Nahuelgrc/returnia-app/actions/workflows/ci.yml)
-![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38bdf8?logo=tailwindcss)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169e1?logo=postgresql)
@@ -26,6 +26,9 @@
 - **Auto Price Fetch** — Unit price is automatically fetched when selecting an asset
 - **Sell Validation** — Backend prevents selling more than your current balance, with a styled error banner in the form
 - **Quantity Precision** — Supports up to 8 decimal places for crypto assets
+- **Edit / Delete** — Individual transactions can be edited or deleted from the Transaction History view; changes that would leave a negative balance are rejected
+- **Entry Price & Realized P&L** — Average entry price per asset and realized profit/loss from sells
+- **CSV Import / Export** — Export all your transactions (`date,type,assetType,ticker,quantity,price,comments`) or import them from a CSV (max 1000 rows / 512 KB, all-or-nothing, negative balances rejected). Text fields are protected against CSV formula injection
 
 ### 🔐 Authentication
 - **Email/Password** — Traditional email and password login
@@ -35,7 +38,7 @@
 
 | Layer | Technology |
 |---|---|
-| **Framework** | Next.js 15+ (App Router) |
+| **Framework** | Next.js 16 (App Router) |
 | **Language** | TypeScript |
 | **Styling** | Tailwind CSS |
 | **Auth** | NextAuth.js v5 (Credentials) |
@@ -49,7 +52,7 @@
 ```
 app/
 ├── actions/          # Server Actions (transaction, portfolio)
-├── api/              # API Routes (prices, search)
+├── api/              # API Routes (prices, search, transactions/export)
 ├── dashboard/        # Dashboard page (SSR)
 ├── login/            # Login page
 components/

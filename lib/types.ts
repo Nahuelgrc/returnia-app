@@ -5,6 +5,7 @@ export interface Holding {
   type: AssetType;
   balance: string;
   averageCost: number;
+  realizedPnl: number;
 }
 
 export interface Asset extends Holding {
